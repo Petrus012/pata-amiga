@@ -24,6 +24,10 @@
           <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}"
              href="{% url 'home' %}">Início</a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'catalogo' %}active{% endif %}"
+             href="{% url 'pets:catalogo' %}">Animais</a>
+        </li>
       </ul>
       {% if user.is_staff %}
         <ul class="navbar-nav">
