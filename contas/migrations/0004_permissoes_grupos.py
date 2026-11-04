@@ -1,3 +1,5 @@
+from django.apps import apps as registro_global
+from django.contrib.auth.management import create_permissions
 from django.db import migrations
 
 PERMISSOES = {
@@ -16,22 +18,34 @@ PERMISSOES = {
 }
 
 
+def garantir_permissoes():
+    """As permissoes nascem no post_migrate, que roda depois desta migracao.
+
+    Sem forcar a criacao aqui, o filtro abaixo nao encontraria nada e os
+    grupos ficariam vazios.
+    """
+    for app_label in ("pets", "adocoes"):
+        create_permissions(registro_global.get_app_config(app_label), verbosity=0)
+
+
 def aplicar(apps, schema_editor):
+    garantir_permissoes()
+
     Group = apps.get_model("auth", "Group")
     Permission = apps.get_model("auth", "Permission")
+
     for nome_grupo, blocos in PERMISSOES.items():
         grupo, _ = Group.objects.get_or_create(name=nome_grupo)
         for app_label, codenames in blocos:
-            perms = Permission.objects.filter(
+            permissoes = Permission.objects.filter(
                 content_type__app_label=app_label,
                 codename__in=codenames,
             )
-            grupo.permissions.add(*perms)
+            grupo.permissions.add(*permissoes)
 
 
 def reverter(apps, schema_editor):
     Group = apps.get_model("auth", "Group")
-    Group.objects.filter(name__in=PERMISSOES).update()
     for grupo in Group.objects.filter(name__in=PERMISSOES):
         grupo.permissions.clear()
 
