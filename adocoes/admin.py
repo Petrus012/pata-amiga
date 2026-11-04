@@ -1,6 +1,16 @@
 from django.contrib import admin
+from django.utils.html import format_html
 
-from .models import STATUS_EM_ABERTO, Acompanhamento, PedidoAdocao
+from .models import STATUS_EM_ABERTO, Acompanhamento, PedidoAdocao, StatusPedido
+
+# Classes de cor do Bootstrap 5, que é a versão usada pelo Jazzmin.
+CORES_STATUS = {
+    StatusPedido.PENDENTE: "text-bg-warning",
+    StatusPedido.EM_ANALISE: "text-bg-info",
+    StatusPedido.APROVADO: "text-bg-success",
+    StatusPedido.RECUSADO: "text-bg-danger",
+    StatusPedido.CONCLUIDO: "text-bg-secondary",
+}
 
 
 class SituacaoPedidoFilter(admin.SimpleListFilter):
@@ -29,7 +39,14 @@ class AcompanhamentoInline(admin.StackedInline):
 @admin.register(PedidoAdocao)
 class PedidoAdocaoAdmin(admin.ModelAdmin):
     inlines = [AcompanhamentoInline]
-    list_display = ["pet", "adotante", "ong", "status", "solicitado_em", "respondido_em"]
+    list_display = [
+        "pet",
+        "adotante",
+        "ong",
+        "status_colorido",
+        "solicitado_em",
+        "respondido_em",
+    ]
     list_filter = [
         SituacaoPedidoFilter,
         "status",
@@ -60,3 +77,11 @@ class PedidoAdocaoAdmin(admin.ModelAdmin):
     @admin.display(description="ONG", ordering="pet__ong__nome_fantasia")
     def ong(self, obj):
         return obj.pet.ong
+
+    @admin.display(description="status", ordering="status")
+    def status_colorido(self, obj):
+        return format_html(
+            '<span class="badge {}">{}</span>',
+            CORES_STATUS[obj.status],
+            obj.get_status_display(),
+        )
