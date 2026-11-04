@@ -21,6 +21,7 @@ class Raca(models.Model):
         Especie,
         on_delete=models.CASCADE,
         related_name="racas",
+        verbose_name="espécie",
     )
 
     class Meta:
@@ -58,6 +59,7 @@ class Pet(models.Model):
         Especie,
         on_delete=models.PROTECT,
         related_name="pets",
+        verbose_name="espécie",
     )
     raca = models.ForeignKey(
         Raca,
@@ -104,10 +106,10 @@ class Pet(models.Model):
 
     def clean(self):
         # A raça é opcional, mas quando informada precisa ser da espécie do animal.
+        # O erro não é ligado ao campo raca porque nem todo formulário tem esse campo,
+        # como a edição em lista do admin, e o Django lançaria ValueError nesses casos.
         if self.raca_id and self.especie_id and self.raca.especie_id != self.especie_id:
-            raise ValidationError(
-                {"raca": "Esta raça não pertence à espécie selecionada."}
-            )
+            raise ValidationError("Esta raça não pertence à espécie selecionada.")
 
     def get_absolute_url(self):
         return reverse("pets:detalhe", kwargs={"pk": self.pk})

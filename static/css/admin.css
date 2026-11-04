@@ -1,0 +1,19 @@
+/* O autocomplete do Django usa variáveis do tema padrão do admin, que o Jazzmin não
+   define. Sem elas, o campo fica sem borda e a lista de opções fica sem fundo. */
+:root {
+    --body-bg: var(--bs-body-bg);
+    --body-fg: var(--bs-body-color);
+    --body-quiet-color: var(--bs-secondary-color);
+    --border-color: var(--bs-border-color);
+    --darkened-bg: var(--bs-tertiary-bg);
+    --selected-bg: var(--bs-secondary-bg);
+    --primary: var(--bs-primary);
+    --primary-fg: #fff;
+    --error-fg: var(--bs-danger);
+}
+
+/* No modo escuro, os links do tema flatly ficam cinza e perdem contraste. */
+[data-bs-theme="dark"] {
+    --bs-link-color-rgb: 24, 188, 156;
+    --bs-link-hover-color-rgb: 72, 217, 188;
+}
