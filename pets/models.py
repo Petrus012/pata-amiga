@@ -21,6 +21,7 @@ class Raca(models.Model):
         Especie,
         on_delete=models.CASCADE,
         related_name="racas",
+        verbose_name="espécie",
     )
 
     class Meta:
@@ -58,6 +59,7 @@ class Pet(models.Model):
         Especie,
         on_delete=models.PROTECT,
         related_name="pets",
+        verbose_name="espécie",
     )
     raca = models.ForeignKey(
         Raca,

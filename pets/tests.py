@@ -2,6 +2,7 @@ import io
 import tempfile
 
 from django.contrib.auth import get_user_model
+from django.contrib.staticfiles import finders
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
@@ -283,6 +284,34 @@ class PetAdminFormularioTests(AdminBaseTestCase):
                 )
                 self.assertEqual(resposta.status_code, 200)
                 self.assertContains(resposta, esperado)
+
+
+class TemaJazzminTests(AdminBaseTestCase):
+    def test_login_usa_a_marca_do_projeto(self):
+        self.client.logout()
+        resposta = self.client.get(reverse("admin:login"))
+        self.assertContains(resposta, "Painel administrativo da Pata Amiga")
+        self.assertContains(resposta, "img/logo.png")
+        self.assertNotContains(resposta, "AdminLTELogo")
+
+    def test_painel_usa_tema_menu_e_seletor_de_modo(self):
+        resposta = self.client.get(reverse("admin:index"))
+        self.assertContains(resposta, "bootswatch/flatly/bootstrap.min.css")
+        self.assertContains(resposta, "jazzmin-mode-select")
+        self.assertContains(resposta, "fas fa-dog")
+        self.assertContains(resposta, "fas fa-hand-holding-heart")
+        self.assertContains(resposta, reverse("admin:pets_pet_changelist"))
+        self.assertContains(resposta, reverse("admin:contas_ong_changelist"))
+
+    def test_arquivos_proprios_estao_nos_estaticos(self):
+        for caminho in ["img/logo.png", "css/admin.css"]:
+            with self.subTest(caminho=caminho):
+                self.assertIsNotNone(finders.find(caminho))
+
+    def test_rotulo_de_especie_tem_acento_no_formulario(self):
+        resposta = self.client.get(reverse("admin:pets_pet_add"))
+        self.assertContains(resposta, "css/admin.css")
+        self.assertContains(resposta, "Espécie")
 
 
 class EspecieRacaAdminTests(AdminBaseTestCase):
