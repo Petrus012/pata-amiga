@@ -85,3 +85,37 @@ class PedidoAdocao(models.Model):
     @property
     def em_aberto(self):
         return self.status in STATUS_EM_ABERTO
+
+
+class Favorito(models.Model):
+    """Tabela intermediária da relação muitos para muitos entre adotante e animal."""
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="favoritos",
+        verbose_name="usuário",
+        limit_choices_to={"tipo": Usuario.Tipo.ADOTANTE},
+    )
+    pet = models.ForeignKey(
+        Pet,
+        on_delete=models.CASCADE,
+        related_name="favoritos",
+        verbose_name="animal",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "favorito"
+        verbose_name_plural = "favoritos"
+        ordering = ["-criado_em"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["usuario", "pet"],
+                name="favorito_unico_por_usuario",
+                violation_error_message="Este animal já está nos favoritos do usuário.",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.pet.nome} favoritado por {self.usuario}"
