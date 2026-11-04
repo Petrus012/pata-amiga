@@ -15,7 +15,7 @@
         crossorigin="anonymous">
   {% block estilos %}{% endblock %}
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
   <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom">
     <div class="container">
       <a class="navbar-brand fw-semibold" href="{% url 'home' %}">
@@ -47,9 +47,11 @@
     </div>
   </nav>
 
-  <main class="container py-4">
+  <main class="container flex-grow-1 py-4">
     {% block conteudo %}{% endblock %}
   </main>
+
+  {% include "includes/rodape.html" %}
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
           integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
