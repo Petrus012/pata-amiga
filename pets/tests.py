@@ -35,6 +35,19 @@ class RacaTests(TestCase):
             Raca.objects.create(nome="SRD", especie=cachorro)
 
 
+class FixtureEspeciesRacasTests(TestCase):
+    fixtures = ["especies_racas"]
+
+    def test_toda_especie_tem_racas_e_opcao_srd(self):
+        self.assertEqual(Especie.objects.count(), 3)
+        for especie in Especie.objects.all():
+            with self.subTest(especie=especie.nome):
+                self.assertTrue(especie.racas.filter(nome="SRD").exists())
+
+    def test_acentos_foram_preservados(self):
+        self.assertTrue(Raca.objects.filter(nome="Pastor Alemão").exists())
+
+
 class FaixaEtariaTests(TestCase):
     def test_limites_de_cada_faixa(self):
         casos = {
