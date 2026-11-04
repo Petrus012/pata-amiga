@@ -1,0 +1,24 @@
+[
+  {"model": "pets.especie", "pk": 1, "fields": {"nome": "Cachorro"}},
+  {"model": "pets.especie", "pk": 2, "fields": {"nome": "Gato"}},
+  {"model": "pets.especie", "pk": 3, "fields": {"nome": "Coelho"}},
+
+  {"model": "pets.raca", "pk": 1, "fields": {"nome": "SRD", "especie": 1}},
+  {"model": "pets.raca", "pk": 2, "fields": {"nome": "Labrador", "especie": 1}},
+  {"model": "pets.raca", "pk": 3, "fields": {"nome": "Golden Retriever", "especie": 1}},
+  {"model": "pets.raca", "pk": 4, "fields": {"nome": "Poodle", "especie": 1}},
+  {"model": "pets.raca", "pk": 5, "fields": {"nome": "Pinscher", "especie": 1}},
+  {"model": "pets.raca", "pk": 6, "fields": {"nome": "Shih Tzu", "especie": 1}},
+  {"model": "pets.raca", "pk": 7, "fields": {"nome": "Pastor Alemão", "especie": 1}},
+  {"model": "pets.raca", "pk": 8, "fields": {"nome": "Beagle", "especie": 1}},
+
+  {"model": "pets.raca", "pk": 9, "fields": {"nome": "SRD", "especie": 2}},
+  {"model": "pets.raca", "pk": 10, "fields": {"nome": "Siamês", "especie": 2}},
+  {"model": "pets.raca", "pk": 11, "fields": {"nome": "Persa", "especie": 2}},
+  {"model": "pets.raca", "pk": 12, "fields": {"nome": "Maine Coon", "especie": 2}},
+  {"model": "pets.raca", "pk": 13, "fields": {"nome": "Angorá", "especie": 2}},
+
+  {"model": "pets.raca", "pk": 14, "fields": {"nome": "SRD", "especie": 3}},
+  {"model": "pets.raca", "pk": 15, "fields": {"nome": "Mini Lop", "especie": 3}},
+  {"model": "pets.raca", "pk": 16, "fields": {"nome": "Lionhead", "especie": 3}}
+]
