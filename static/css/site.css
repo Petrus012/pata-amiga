@@ -1,0 +1,32 @@
+/* Estilos próprios do site. O restante do visual vem do Bootstrap. */
+
+/* Todas as fotos com a mesma proporção, para a grade de cards não ficar desalinhada. */
+.card-pet .card-img-top {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+/* Espaço da foto quando o animal ainda não tem uma. As variáveis do Bootstrap
+   fazem a cor acompanhar o tema claro ou escuro. */
+.card-pet .foto-pendente {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bs-tertiary-bg);
+  color: var(--bs-secondary-color);
+  font-size: 3rem;
+}
+
+.card-pet {
+  transition: transform 0.15s ease-in-out;
+}
+
+.card-pet:hover {
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-pet {
+    transition: none;
+  }
+}
