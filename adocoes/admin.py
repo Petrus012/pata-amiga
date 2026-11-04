@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import STATUS_EM_ABERTO, Acompanhamento, PedidoAdocao, StatusPedido
+from .models import STATUS_EM_ABERTO, Acompanhamento, Favorito, PedidoAdocao, StatusPedido
 
 # Classes de cor do Bootstrap 5, que é a versão usada pelo Jazzmin.
 CORES_STATUS = {
@@ -84,4 +84,44 @@ class PedidoAdocaoAdmin(admin.ModelAdmin):
             '<span class="badge {}">{}</span>',
             CORES_STATUS[obj.status],
             obj.get_status_display(),
+        )
+
+
+@admin.register(Favorito)
+class FavoritoAdmin(admin.ModelAdmin):
+    list_display = ["pet", "usuario", "criado_em"]
+    list_filter = ["pet__especie", ("pet__ong", admin.RelatedOnlyFieldListFilter), "criado_em"]
+    list_select_related = ["pet__especie", "usuario"]
+    search_fields = ["pet__nome", "usuario__username", "usuario__email"]
+    date_hierarchy = "criado_em"
+    autocomplete_fields = ["usuario", "pet"]
+
+
+@admin.register(Acompanhamento)
+class AcompanhamentoAdmin(admin.ModelAdmin):
+    list_display = ["miniatura", "animal", "adotante", "data"]
+    list_display_links = ["animal"]
+    list_filter = ["data", "pedido__pet__especie"]
+    list_select_related = ["pedido__pet", "pedido__adotante"]
+    search_fields = ["relato", "pedido__pet__nome", "pedido__adotante__username"]
+    date_hierarchy = "data"
+    autocomplete_fields = ["pedido"]
+    readonly_fields = ["miniatura"]
+    fields = ["pedido", "data", "relato", "foto", "miniatura"]
+
+    @admin.display(description="animal", ordering="pedido__pet__nome")
+    def animal(self, obj):
+        return obj.pedido.pet.nome
+
+    @admin.display(description="adotante", ordering="pedido__adotante__username")
+    def adotante(self, obj):
+        return obj.pedido.adotante
+
+    @admin.display(description="foto")
+    def miniatura(self, obj):
+        if not obj.foto:
+            return "-"
+        return format_html(
+            '<img src="{}" alt="" style="height: 48px; width: 48px; object-fit: cover; border-radius: 4px;">',
+            obj.foto.url,
         )
