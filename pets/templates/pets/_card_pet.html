@@ -1,0 +1,45 @@
+<div class="col">
+  <article class="card h-100 shadow-sm card-pet">
+    {% if pet.foto %}
+      <img src="{{ pet.foto.url }}" class="card-img-top" alt="Foto de {{ pet.nome }}" loading="lazy">
+    {% else %}
+      <div class="card-img-top foto-pendente" aria-hidden="true">
+        <i class="bi bi-camera"></i>
+      </div>
+    {% endif %}
+
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+        <h2 class="h5 card-title mb-0">{{ pet.nome }}</h2>
+        {% if not pet.disponivel %}
+          <span class="badge text-bg-warning">{{ pet.get_status_display }}</span>
+        {% endif %}
+      </div>
+      <p class="card-text small text-body-secondary mb-2">
+        {{ pet.especie }}{% if pet.raca %} &middot; {{ pet.raca.nome }}{% endif %}
+      </p>
+      <ul class="list-inline small mb-2">
+        <li class="list-inline-item">
+          <i class="bi {% if pet.sexo == 'F' %}bi-gender-female{% else %}bi-gender-male{% endif %}" aria-hidden="true"></i>
+          {{ pet.get_sexo_display }}
+        </li>
+        <li class="list-inline-item">Porte {{ pet.get_porte_display|lower }}</li>
+        <li class="list-inline-item">
+          {{ pet.faixa_etaria }}
+          {% if pet.idade_aproximada %}({{ pet.idade_aproximada }} ano{{ pet.idade_aproximada|pluralize }}){% endif %}
+        </li>
+      </ul>
+      {% if pet.castrado %}
+        <span class="badge rounded-pill bg-success-subtle text-success-emphasis">Castrado</span>
+      {% endif %}
+      {% if pet.vacinado %}
+        <span class="badge rounded-pill bg-success-subtle text-success-emphasis">Vacinado</span>
+      {% endif %}
+    </div>
+
+    <div class="card-footer bg-transparent small text-body-secondary">
+      <i class="bi bi-geo-alt" aria-hidden="true"></i>
+      {{ pet.ong.nome_fantasia }} &middot; {{ pet.ong.cidade }}
+    </div>
+  </article>
+</div>

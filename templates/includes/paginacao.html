@@ -1,0 +1,24 @@
+{# A tag querystring mantém os demais parâmetros da URL, como busca e filtros. #}
+{% if page_obj.has_other_pages %}
+  <nav aria-label="Paginação" class="mt-4">
+    <ul class="pagination justify-content-center">
+      <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+        {% if page_obj.has_previous %}
+          <a class="page-link" href="{% querystring page=page_obj.previous_page_number %}">Anterior</a>
+        {% else %}
+          <span class="page-link">Anterior</span>
+        {% endif %}
+      </li>
+      <li class="page-item active" aria-current="page">
+        <span class="page-link">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+      </li>
+      <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+        {% if page_obj.has_next %}
+          <a class="page-link" href="{% querystring page=page_obj.next_page_number %}">Próxima</a>
+        {% else %}
+          <span class="page-link">Próxima</span>
+        {% endif %}
+      </li>
+    </ul>
+  </nav>
+{% endif %}
