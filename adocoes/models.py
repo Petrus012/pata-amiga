@@ -129,6 +129,7 @@ class Acompanhamento(models.Model):
         on_delete=models.CASCADE,
         related_name="acompanhamentos",
         verbose_name="pedido de adoção",
+        limit_choices_to={"status": StatusPedido.CONCLUIDO},
     )
     relato = models.TextField(help_text="Como o animal está se adaptando ao novo lar.")
     foto = models.ImageField(upload_to="acompanhamentos/%Y/%m/", blank=True)
