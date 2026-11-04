@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block titulo %}Animais para adoção{% endblock %}
+
+{% block conteudo %}
+<header class="mb-4">
+  <h1 class="h2 mb-1">Animais para adoção</h1>
+  <p class="text-body-secondary mb-0">
+    {% if paginator.count == 1 %}1 animal esperando{% else %}{{ paginator.count }} animais esperando{% endif %}
+    um lar.
+  </p>
+</header>
+
+{% if pets %}
+  <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-4">
+    {% for pet in pets %}
+      {% include "pets/_card_pet.html" %}
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="text-center text-body-secondary py-5">
+    <i class="bi bi-search fs-1" aria-hidden="true"></i>
+    <p class="mt-2 mb-0">Nenhum animal disponível no momento.</p>
+  </div>
+{% endif %}
+{% endblock %}
