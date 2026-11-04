@@ -127,3 +127,61 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "contas.Usuario"
+
+
+# Ambiente administrativo (Jazzmin)
+
+JAZZMIN_SETTINGS = {
+    "site_title": "Pata Amiga",
+    "site_header": "Pata Amiga",
+    "site_brand": "Pata Amiga",
+    "site_logo": "img/logo.png",
+    "welcome_sign": "Painel administrativo da Pata Amiga",
+    "copyright": "Pata Amiga",
+    "search_model": ["pets.Pet"],
+    "topmenu_links": [
+        {"name": "Início", "url": "admin:index"},
+        {"name": "Animais", "url": "admin:pets_pet_changelist"},
+        {"name": "ONGs", "url": "admin:contas_ong_changelist"},
+    ],
+    "order_with_respect_to": [
+        "pets",
+        "pets.Pet",
+        "pets.Especie",
+        "pets.Raca",
+        "adocoes",
+        "contas",
+        "contas.Ong",
+        "contas.Usuario",
+        "auth",
+    ],
+    "icons": {
+        "pets": "fas fa-paw",
+        "pets.Pet": "fas fa-dog",
+        "pets.Especie": "fas fa-tags",
+        "pets.Raca": "fas fa-dna",
+        "adocoes": "fas fa-heart",
+        "adocoes.PedidoAdocao": "fas fa-file-signature",
+        "adocoes.Favorito": "fas fa-star",
+        "adocoes.Acompanhamento": "fas fa-camera",
+        "contas": "fas fa-address-book",
+        "contas.Usuario": "fas fa-user",
+        "contas.Ong": "fas fa-hand-holding-heart",
+        "auth": "fas fa-users-cog",
+        "auth.Group": "fas fa-users",
+    },
+    "custom_css": "css/admin.css",
+    "show_theme_chooser": True,
+    "changeform_format": "horizontal_tabs",
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "theme": "flatly",
+    "default_theme_mode": "auto",
+    # Sem navbar-light, a barra superior acompanha o modo claro ou escuro.
+    "navbar": "",
+    "accent": "accent-success",
+    "sidebar_fixed": True,
+    "navbar_fixed": True,
+    "sidebar_nav_child_indent": True,
+}
