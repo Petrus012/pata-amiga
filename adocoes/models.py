@@ -119,3 +119,32 @@ class Favorito(models.Model):
 
     def __str__(self):
         return f"{self.pet.nome} favoritado por {self.usuario}"
+
+
+class Acompanhamento(models.Model):
+    """Relato do adotante sobre a adaptação do animal depois da adoção."""
+
+    pedido = models.ForeignKey(
+        PedidoAdocao,
+        on_delete=models.CASCADE,
+        related_name="acompanhamentos",
+        verbose_name="pedido de adoção",
+    )
+    relato = models.TextField(help_text="Como o animal está se adaptando ao novo lar.")
+    foto = models.ImageField(upload_to="acompanhamentos/%Y/%m/", blank=True)
+    data = models.DateField(default=timezone.localdate)
+
+    class Meta:
+        verbose_name = "acompanhamento"
+        verbose_name_plural = "acompanhamentos"
+        ordering = ["-data"]
+
+    def __str__(self):
+        return f"Acompanhamento de {self.pedido.pet.nome} em {self.data:%d/%m/%Y}"
+
+    def clean(self):
+        # O pedido pode não estar definido aqui quando o campo veio vazio no formulário;
+        # nesse caso o próprio campo já acusa o erro de obrigatório.
+        pedido = getattr(self, "pedido", None)
+        if pedido and pedido.status != StatusPedido.CONCLUIDO:
+            raise ValidationError("Só é possível registrar acompanhamento de adoções concluídas.")
