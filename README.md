@@ -9,7 +9,7 @@ Plataforma web de adoção responsável de animais, desenvolvida como trabalho p
 | Nome | Matrícula | GitHub |
 |---|---|---|
 | Pyêtro Augusto Malaquias | 202320986 | [@Petrus012](https://github.com/Petrus012) |
-| Lídio Júnior Pereira Batista | (preencher) | (preencher) |
+| Lídio Júnior Pereira Batista | 202320988 | [@lidiojr0](https://github.com/lidiojr0) |
 | João Vitor Givisiez Lessa | (preencher) | (preencher) |
 
 ## Descrição do projeto
@@ -19,14 +19,14 @@ Plataforma web de adoção responsável de animais, desenvolvida como trabalho p
 
 ## Tecnologias utilizadas
 
-<!-- Responsável: Lídio. Listar com a versão usada de fato, conferindo no requirements.txt. -->
+- Python 3.12 ou superior (exigência do Django 6.1)
+- Django 6.1.3
+- SQLite (banco de dados relacional usado em desenvolvimento)
+- Bootstrap 5 (interface da aplicação)
+- django-jazzmin 3.0.5 (tema do ambiente administrativo)
+- Pillow 13.0.0 (upload de imagens)
 
-- Python 3.11
-- Django 5.x
-- SQLite
-- Bootstrap 5
-- Jazzmin (tema do ambiente administrativo)
-- Pillow (upload de imagens)
+As versões exatas das dependências Python estão no `requirements.txt`.
 
 ## Instalação
 
@@ -86,11 +86,17 @@ pata-amiga/
 ├── core/              # configuração do projeto (settings, urls, wsgi)
 ├── contas/            # usuário customizado, perfis, autenticação e permissões
 ├── pets/              # espécies, raças, animais e vacinas
+│   ├── fixtures/      # carga inicial de espécies e raças
+│   └── migrations/    # histórico de alterações do banco
 ├── adocoes/           # pedidos de adoção, favoritos e acompanhamento
 ├── templates/         # templates compartilhados, base.html
-├── static/            # css e javascript próprios
+├── static/
+│   ├── css/           # ajustes visuais do ambiente administrativo
+│   └── img/           # logo da aplicação
 ├── media/             # imagens enviadas pelos usuários (fora do versionamento)
+├── LICENSE
 ├── manage.py
+├── README.md
 └── requirements.txt
 ```
 
