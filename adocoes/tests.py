@@ -1,6 +1,8 @@
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
+from django.urls import reverse
+from django.utils import timezone
 
 from contas.models import Ong, Usuario
 from pets.models import Especie, Pet
@@ -147,3 +149,164 @@ class AcompanhamentoTests(AdocoesTestCase):
         with self.assertRaises(ValidationError) as contexto:
             Acompanhamento(relato="Está ótimo.").full_clean()
         self.assertEqual(list(contexto.exception.message_dict), ["pedido"])
+
+
+class AdminAdocoesTestCase(AdocoesTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.admin_user = Usuario.objects.create_superuser("admin", "a@a.com", "senha")
+
+    def setUp(self):
+        self.client.force_login(self.admin_user)
+
+    def listados(self, resposta):
+        return set(resposta.context["cl"].queryset)
+
+
+class PedidoAdocaoAdminListaTests(AdminAdocoesTestCase):
+    url = reverse("admin:adocoes_pedidoadocao_changelist")
+
+    def test_exige_autenticacao(self):
+        self.client.logout()
+        resposta = self.client.get(self.url)
+        self.assertEqual(resposta.status_code, 302)
+        self.assertIn(reverse("admin:login"), resposta.url)
+
+    def test_lista_abre_com_cada_filtro(self):
+        pedido = self.criar_pedido()
+        inicio_de_hoje = timezone.localtime().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        filtros = [
+            {"situacao": "aberto"},
+            {"status__exact": StatusPedido.PENDENTE},
+            {"pet__ong__id__exact": self.ong.pk},
+            {"pet__especie__id__exact": self.cachorro.pk},
+            {"solicitado_em__gte": str(inicio_de_hoje)},
+            {"respondido_em__isnull": "True"},
+            {"q": "Rex"},
+            {"q": "ana"},
+            {"q": "Patas Livres"},
+        ]
+        for filtro in filtros:
+            with self.subTest(filtro=filtro):
+                resposta = self.client.get(self.url, filtro)
+                self.assertEqual(resposta.status_code, 200)
+                self.assertEqual(self.listados(resposta), {pedido})
+
+    def test_filtro_de_situacao_separa_abertos_de_encerrados(self):
+        pedidos = {
+            status: self.criar_pedido(pet=self.criar_pet(f"Pet {status}"), status=status)
+            for status in StatusPedido
+        }
+        abertos = {pedidos[status] for status in STATUS_EM_ABERTO}
+        encerrados = set(pedidos.values()) - abertos
+
+        resposta = self.client.get(self.url, {"situacao": "aberto"})
+        self.assertEqual(self.listados(resposta), abertos)
+        resposta = self.client.get(self.url, {"situacao": "encerrado"})
+        self.assertEqual(self.listados(resposta), encerrados)
+
+    def test_status_aparece_com_cor(self):
+        self.criar_pedido()
+        resposta = self.client.get(self.url)
+        self.assertContains(resposta, '<span class="badge text-bg-warning">Pendente</span>')
+
+    def test_menu_usa_os_icones_de_adocoes(self):
+        resposta = self.client.get(reverse("admin:index"))
+        for icone in ["fas fa-file-signature", "fas fa-star", "fas fa-camera"]:
+            with self.subTest(icone=icone):
+                self.assertContains(resposta, icone)
+
+
+class PedidoAdocaoAdminFormularioTests(AdminAdocoesTestCase):
+    def dados(self, pedido=None, **extras):
+        dados = {
+            "pet": self.rex.pk,
+            "adotante": self.ana.pk,
+            "mensagem": "Tenho quintal.",
+            "status": StatusPedido.PENDENTE,
+            "resposta_ong": "",
+            "acompanhamentos-TOTAL_FORMS": 0,
+            "acompanhamentos-INITIAL_FORMS": 0,
+            "acompanhamentos-MIN_NUM_FORMS": 0,
+            "acompanhamentos-MAX_NUM_FORMS": 1000,
+        }
+        dados.update(extras)
+        return dados
+
+    def test_recusa_pedido_duplicado_com_mensagem_clara(self):
+        self.criar_pedido()
+        resposta = self.client.post(reverse("admin:adocoes_pedidoadocao_add"), self.dados())
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, "já tem um pedido em aberto")
+        self.assertEqual(PedidoAdocao.objects.count(), 1)
+
+    def test_acompanhamento_no_inline_so_com_adocao_concluida(self):
+        pedido = self.criar_pedido(status=StatusPedido.APROVADO)
+        url = reverse("admin:adocoes_pedidoadocao_change", args=[pedido.pk])
+        acompanhamento = {
+            "acompanhamentos-TOTAL_FORMS": 1,
+            "acompanhamentos-0-data": "04/11/2026",
+            "acompanhamentos-0-relato": "Adaptou bem.",
+        }
+        resposta = self.client.post(
+            url, self.dados(status=StatusPedido.APROVADO, **acompanhamento)
+        )
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, "adoções concluídas")
+        self.assertFalse(Acompanhamento.objects.exists())
+
+        resposta = self.client.post(
+            url, self.dados(status=StatusPedido.CONCLUIDO, **acompanhamento)
+        )
+        self.assertEqual(resposta.status_code, 302)
+        self.assertEqual(pedido.acompanhamentos.get().relato, "Adaptou bem.")
+
+
+class AutocompleteAdminTests(AdminAdocoesTestCase):
+    def buscar(self, model_name, field_name, termo=""):
+        resposta = self.client.get(
+            reverse("admin:autocomplete"),
+            {
+                "app_label": "adocoes",
+                "model_name": model_name,
+                "field_name": field_name,
+                "term": termo,
+            },
+        )
+        self.assertEqual(resposta.status_code, 200)
+        return {int(item["id"]) for item in resposta.json()["results"]}
+
+    def test_pedido_oferece_so_adotantes(self):
+        encontrados = self.buscar("pedidoadocao", "adotante")
+        self.assertTrue({self.ana.pk, self.bruno.pk} <= encontrados)
+        self.assertNotIn(self.ong.responsavel_id, encontrados)
+
+    def test_pedido_busca_animal_pelo_nome(self):
+        self.criar_pet("Luna")
+        self.assertEqual(self.buscar("pedidoadocao", "pet", "Rex"), {self.rex.pk})
+
+    def test_acompanhamento_oferece_so_pedidos_concluidos(self):
+        concluido = self.criar_pedido(adotante=self.ana, status=StatusPedido.CONCLUIDO)
+        self.criar_pedido(adotante=self.bruno, status=StatusPedido.APROVADO)
+        self.assertEqual(self.buscar("acompanhamento", "pedido"), {concluido.pk})
+
+
+class FavoritoAcompanhamentoAdminTests(AdminAdocoesTestCase):
+    def test_listas_abrem_com_filtros(self):
+        favorito = Favorito.objects.create(usuario=self.ana, pet=self.rex)
+        pedido = self.criar_pedido(status=StatusPedido.CONCLUIDO)
+        acompanhamento = Acompanhamento.objects.create(pedido=pedido, relato="Feliz.")
+        casos = [
+            ("admin:adocoes_favorito_changelist", {"pet__especie__id__exact": self.cachorro.pk}, favorito),
+            ("admin:adocoes_favorito_changelist", {"q": "ana"}, favorito),
+            ("admin:adocoes_acompanhamento_changelist", {"pedido__pet__especie__id__exact": self.cachorro.pk}, acompanhamento),
+            ("admin:adocoes_acompanhamento_changelist", {"q": "Rex"}, acompanhamento),
+        ]
+        for nome_url, filtro, esperado in casos:
+            with self.subTest(url=nome_url, filtro=filtro):
+                resposta = self.client.get(reverse(nome_url), filtro)
+                self.assertEqual(resposta.status_code, 200)
+                self.assertEqual(self.listados(resposta), {esperado})
