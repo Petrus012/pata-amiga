@@ -13,7 +13,15 @@ from PIL import Image
 
 from contas.models import Ong
 
-from .models import Especie, Pet, Raca, Vacina
+from .models import (
+    FAIXAS_ETARIAS,
+    IDADE_MAXIMA,
+    Especie,
+    Pet,
+    Raca,
+    Vacina,
+    filtro_faixa_etaria,
+)
 
 
 class PetCleanTests(TestCase):
@@ -71,6 +79,40 @@ class FaixaEtariaTests(TestCase):
         for idade, esperado in casos.items():
             with self.subTest(idade=idade):
                 self.assertEqual(Pet(idade_aproximada=idade).faixa_etaria, esperado)
+
+    def test_propriedade_e_filtro_concordam_em_todas_as_idades(self):
+        # A propriedade calcula em Python e o filtro consulta o banco. Os dois leem
+        # FAIXAS_ETARIAS, e este teste garante que nenhuma idade cai em faixa diferente.
+        rotulos = {chave: rotulo for chave, rotulo, _, _ in FAIXAS_ETARIAS}
+        for idade in range(IDADE_MAXIMA + 1):
+            pet = Pet(idade_aproximada=idade)
+            faixas_que_aceitam = [
+                chave
+                for chave, _, minimo, maximo in FAIXAS_ETARIAS
+                if minimo <= idade <= maximo
+            ]
+            with self.subTest(idade=idade):
+                self.assertEqual(len(faixas_que_aceitam), 1)
+                self.assertEqual(rotulos[faixas_que_aceitam[0]], pet.faixa_etaria)
+
+    def test_filtro_de_faixa_desconhecida_e_ignorado(self):
+        self.assertIsNone(filtro_faixa_etaria("bebe"))
+        self.assertIsNone(filtro_faixa_etaria(None))
+
+
+class IdadeMaximaTests(TestCase):
+    def test_idade_acima_do_limite_e_recusada(self):
+        pet = Pet(idade_aproximada=IDADE_MAXIMA + 1)
+        with self.assertRaises(ValidationError) as erro:
+            pet.full_clean()
+        self.assertIn("idade_aproximada", erro.exception.message_dict)
+
+    def test_idade_no_limite_e_aceita(self):
+        pet = Pet(idade_aproximada=IDADE_MAXIMA)
+        with self.assertRaises(ValidationError) as erro:
+            pet.full_clean()
+        # Outros campos obrigatórios estão vazios, mas a idade em si é válida.
+        self.assertNotIn("idade_aproximada", erro.exception.message_dict)
 
 
 class AdminBaseTestCase(TestCase):

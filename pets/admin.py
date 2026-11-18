@@ -2,29 +2,22 @@ from django.contrib import admin
 from django.db.models import Count
 from django.utils.html import format_html
 
-from .models import Especie, Pet, Raca, Vacina
+from .models import FAIXAS_ETARIAS, Especie, Pet, Raca, Vacina, filtro_faixa_etaria
 
 
 class FaixaEtariaFilter(admin.SimpleListFilter):
-    """Pet.faixa_etaria é uma propriedade, então o filtro repete os limites como consulta."""
+    """Pet.faixa_etaria é uma propriedade, então o filtro usa os limites como consulta."""
 
     title = "faixa etária"
     parameter_name = "faixa_etaria"
 
-    FAIXAS = {
-        "filhote": ("Filhote", {"idade_aproximada": 0}),
-        "jovem": ("Jovem", {"idade_aproximada__range": (1, 2)}),
-        "adulto": ("Adulto", {"idade_aproximada__range": (3, 7)}),
-        "idoso": ("Idoso", {"idade_aproximada__gte": 8}),
-    }
-
     def lookups(self, request, model_admin):
-        return [(chave, rotulo) for chave, (rotulo, _) in self.FAIXAS.items()]
+        return [(chave, rotulo) for chave, rotulo, _, _ in FAIXAS_ETARIAS]
 
     def queryset(self, request, queryset):
-        faixa = self.FAIXAS.get(self.value())
-        if faixa:
-            return queryset.filter(**faixa[1])
+        filtro = filtro_faixa_etaria(self.value())
+        if filtro is not None:
+            return queryset.filter(filtro)
         return queryset
 
 
