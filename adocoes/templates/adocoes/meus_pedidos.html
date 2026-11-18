@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block titulo %}Meus pedidos{% endblock %}
+
+{% block conteudo %}
+<h1 class="h2 mb-4">Meus pedidos de adoção</h1>
+
+{% for pedido in pedidos %}
+  <article class="card mb-3">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start gap-2">
+        <h2 class="h5 mb-1">
+          <a href="{{ pedido.pet.get_absolute_url }}" class="link-body-emphasis">{{ pedido.pet.nome }}</a>
+        </h2>
+        {% include "adocoes/_status_badge.html" with status=pedido.status rotulo=pedido.get_status_display %}
+      </div>
+      <p class="small text-body-secondary mb-2">
+        {{ pedido.pet.especie }} &middot; {{ pedido.pet.ong.nome_fantasia }}
+        &middot; enviado em {{ pedido.solicitado_em|date:"d/m/Y" }}
+        {% if pedido.respondido_em %}&middot; respondido em {{ pedido.respondido_em|date:"d/m/Y" }}{% endif %}
+      </p>
+      <p class="mb-2">{{ pedido.mensagem|linebreaksbr }}</p>
+
+      {% if pedido.resposta_ong %}
+        <div class="border rounded p-2 bg-body-tertiary mb-2">
+          <strong class="small">Resposta da ONG</strong>
+          <p class="mb-0">{{ pedido.resposta_ong|linebreaksbr }}</p>
+        </div>
+      {% endif %}
+
+      {% for acompanhamento in pedido.acompanhamentos.all %}
+        <div class="border-start border-3 border-success ps-3 mb-2">
+          <div class="small text-body-secondary">Acompanhamento de {{ acompanhamento.data|date:"d/m/Y" }}</div>
+          <p class="mb-1">{{ acompanhamento.relato|linebreaksbr }}</p>
+          {% if acompanhamento.foto %}
+            <img src="{{ acompanhamento.foto.url }}" alt="Foto do acompanhamento de {{ pedido.pet.nome }}"
+                 class="img-fluid rounded" style="max-height: 200px;" loading="lazy">
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        {% if pedido.status == "PENDENTE" %}
+          <form method="post" action="{% url 'adocoes:cancelar' pedido.pk %}"
+                onsubmit="return confirm('Cancelar o pedido de adoção de {{ pedido.pet.nome|escapejs }}?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger">Cancelar pedido</button>
+          </form>
+        {% elif pedido.status == "CONCLUIDO" %}
+          <a href="{% url 'adocoes:acompanhamento' pedido.pk %}" class="btn btn-sm btn-outline-success">
+            <i class="bi bi-camera" aria-hidden="true"></i> Registrar acompanhamento
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </article>
+{% empty %}
+  <div class="text-center text-body-secondary py-5">
+    <i class="bi bi-clipboard-heart fs-1" aria-hidden="true"></i>
+    <p class="mt-2">Você ainda não fez nenhum pedido de adoção.</p>
+    <a href="{% url 'pets:catalogo' %}" class="btn btn-success">Conhecer os animais</a>
+  </div>
+{% endfor %}
+
+{% include "includes/paginacao.html" %}
+{% endblock %}
