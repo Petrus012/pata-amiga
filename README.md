@@ -76,21 +76,23 @@ O acesso ao ambiente administrativo exige um superusuário, criado com `python m
 - Acesso completo ao ambiente administrativo, com tema personalizado pelo Jazzmin
 - Cadastro, consulta, edição e exclusão de todas as entidades do sistema
 - Verificação das ONGs, editável diretamente na listagem
-- Filtros por espécie, porte, sexo, status, castrado, vacinado e data de cadastro
+- Filtros por espécie, porte, sexo, faixa etária, status, castrado, vacinado, ONG e data de cadastro
 - Busca por nome do animal, nome fantasia da ONG, CNPJ, cidade e usuário
 - Registro de vacinas embutido na página do animal
+- Uma ONG com acesso ao ambiente administrativo vê e cadastra só os próprios animais e pedidos
 - Gestão dos grupos ONG e Adotante e das permissões de cada um
 
 **ONG ou protetor**
 
-- Cadastro dos próprios animais, com foto, espécie, raça, porte, sexo e idade aproximada
-- Controle do histórico de vacinas de cada animal
-- Acompanhamento do status de cada animal entre disponível, em processo de adoção e adotado
+- Área "Meus animais" para cadastrar, editar e remover os próprios animais, com foto, espécie, raça, porte, sexo e idade aproximada
+- Histórico de vacinas no mesmo formulário do animal
+- Resumo dos animais por status e quantidade de pedidos em aberto de cada um
+- Animal com pedidos de adoção não pode ser removido, para preservar o histórico dos adotantes
 - Análise dos pedidos de adoção recebidos, com aprovação ou recusa e resposta ao adotante
 
 **Adotante**
 
-- Navegação pelo catálogo de animais disponíveis, com busca e filtros
+- Navegação pelo catálogo de animais disponíveis, com busca por nome, raça, espécie, ONG ou cidade e filtros por espécie, porte, sexo e faixa etária
 - Página de detalhe de cada animal, com informações de saúde e da instituição responsável
 - Envio de pedidos de adoção, com mensagem de apresentação
 - Favoritos, para acompanhar animais de interesse
@@ -103,12 +105,18 @@ O acesso ao ambiente administrativo exige um superusuário, criado com `python m
 pata-amiga/
 ├── core/              # configuração do projeto (settings, urls, wsgi)
 ├── contas/            # usuário customizado, perfis, autenticação e permissões
-│   └── management/    # comando seed, com dados de demonstração
+│   ├── management/    # comando seed, com dados de demonstração
+│   └── mixins.py      # controle de acesso por perfil (ONG e adotante)
 ├── pets/              # espécies, raças, animais e vacinas
 │   ├── fixtures/      # carga inicial de espécies e raças
-│   └── migrations/    # histórico de alterações do banco
+│   ├── migrations/    # histórico de alterações do banco
+│   ├── templates/     # catálogo, detalhe do animal e área "Meus animais" da ONG
+│   └── forms.py       # formulário do animal, vacinas e filtros do catálogo
 ├── adocoes/           # pedidos de adoção, favoritos e acompanhamento
-├── templates/         # templates compartilhados, base.html
+│   └── templates/     # telas do adotante e painel de pedidos da ONG
+├── templates/         # base.html, página inicial e página de acesso negado
+│   ├── includes/      # navbar, rodapé, mensagens e paginação
+│   └── registration/  # tela de login
 ├── static/
 │   ├── css/           # ajustes visuais do ambiente administrativo
 │   ├── img/           # logo da aplicação
