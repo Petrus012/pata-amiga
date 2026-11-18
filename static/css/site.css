@@ -8,7 +8,7 @@
 
 /* Espaço da foto quando o animal ainda não tem uma. As variáveis do Bootstrap
    fazem a cor acompanhar o tema claro ou escuro. */
-.card-pet .foto-pendente {
+.foto-pendente {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -29,4 +29,17 @@
   .card-pet {
     transition: none;
   }
+}
+
+/* Foto grande da página de detalhe, com a mesma proporção dos cards. */
+.foto-detalhe {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.foto-detalhe.foto-pendente {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
 }
