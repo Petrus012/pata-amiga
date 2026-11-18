@@ -32,7 +32,11 @@
       <tbody>
         {% for pedido in pedidos %}
           <tr>
-            <td>{{ pedido.pet.nome }} <span class="text-body-secondary small">({{ pedido.pet.especie }})</span></td>
+            <td>
+              {# O nome também leva à análise: no celular o botão da última coluna fica atrás da rolagem. #}
+              <a href="{% url 'adocoes:responder' pedido.pk %}" class="link-body-emphasis">{{ pedido.pet.nome }}</a>
+              <span class="text-body-secondary small">({{ pedido.pet.especie }})</span>
+            </td>
             <td>{{ pedido.adotante }}</td>
             <td>{{ pedido.solicitado_em|date:"d/m/Y" }}</td>
             <td>{% include "adocoes/_status_badge.html" with status=pedido.status rotulo=pedido.get_status_display %}</td>
