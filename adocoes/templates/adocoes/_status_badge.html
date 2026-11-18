@@ -1,0 +1,6 @@
+{# Espera status e rotulo. As cores seguem as do admin: amarelo para pendente, verde para aprovado. #}
+{% if status == "PENDENTE" %}<span class="badge text-bg-warning">{{ rotulo }}</span>
+{% elif status == "EM_ANALISE" %}<span class="badge text-bg-info">{{ rotulo }}</span>
+{% elif status == "APROVADO" %}<span class="badge text-bg-success">{{ rotulo }}</span>
+{% elif status == "RECUSADO" %}<span class="badge text-bg-danger">{{ rotulo }}</span>
+{% else %}<span class="badge text-bg-secondary">{{ rotulo }}</span>{% endif %}
