@@ -74,6 +74,26 @@ class PedidoAdocaoAdmin(admin.ModelAdmin):
         ("Registro", {"fields": ["solicitado_em", "respondido_em"]}),
     ]
 
+    def restrito_a_ong(self, request):
+        # Superusuário e administrador veem tudo. A ONG vê só o que é dela.
+        return request.user.eh_ong and not request.user.is_superuser
+
+    def get_queryset(self, request):
+        pedidos = super().get_queryset(request)
+        if not self.restrito_a_ong(request):
+            return pedidos
+        # Sem este filtro, a ONG abria no admin os pedidos dos animais de outras ONGs.
+        # Os filtros da lateral partem deste mesmo queryset, então também ficam restritos.
+        ong = getattr(request.user, "ong", None)
+        return pedidos.filter(pet__ong=ong) if ong else pedidos.none()
+
+    def get_readonly_fields(self, request, obj=None):
+        campos = super().get_readonly_fields(request, obj)
+        if self.restrito_a_ong(request):
+            # A ONG decide o status e responde, mas não troca o animal nem o adotante.
+            return [*campos, "pet", "adotante", "mensagem"]
+        return campos
+
     @admin.display(description="ONG", ordering="pet__ong__nome_fantasia")
     def ong(self, obj):
         return obj.pet.ong
