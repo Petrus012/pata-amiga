@@ -79,6 +79,13 @@ class PetFormTests(FormulariosTestCase):
             },
         )
 
+    def test_menus_tem_texto_inicial_em_portugues(self):
+        html = str(PetForm())
+        self.assertNotIn("Select an option", html)
+        for texto in ["Escolha a espécie", "Escolha o sexo", "Escolha o porte", "Não informada"]:
+            with self.subTest(texto=texto):
+                self.assertIn(texto, html)
+
     def test_animal_sem_raca_e_aceito(self):
         self.assertTrue(PetForm(self.dados(raca="")).is_valid())
 

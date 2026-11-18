@@ -53,6 +53,12 @@ class PetForm(forms.ModelForm):
             grupos.setdefault(raca.especie.nome, []).append((raca.pk, raca.nome))
         self.fields["raca"].choices = [("", "Não informada"), *grupos.items()]
 
+        # O Django 6.1 trocou o "---------" por "- Select an option -", ainda sem
+        # tradução para o português. Os menus obrigatórios ganham um convite próprio.
+        self.fields["especie"].empty_label = "Escolha a espécie"
+        self.fields["sexo"].choices = [("", "Escolha o sexo"), *Pet.Sexo.choices]
+        self.fields["porte"].choices = [("", "Escolha o porte"), *Pet.Porte.choices]
+
     def clean_foto(self):
         foto = self.cleaned_data.get("foto")
         # Só confere arquivos novos. Uma foto já salva não é enviada de novo na edição.

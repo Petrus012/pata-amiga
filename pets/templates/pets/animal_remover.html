@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block titulo %}Remover {{ pet.nome }}{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+  <div class="col-lg-7 text-center py-4">
+    <i class="bi bi-trash3 fs-1 text-danger" aria-hidden="true"></i>
+    <h1 class="h3 mt-3">Remover {{ pet.nome }}?</h1>
+
+    {% if tem_pedidos %}
+      <div class="alert alert-warning text-start mt-3" role="alert">
+        {{ pet.nome }} tem pedidos de adoção e não pode ser removido, para não apagar o histórico
+        dos adotantes. Os pedidos em aberto podem ser respondidos em
+        <a href="{% url 'adocoes:recebidos' %}" class="alert-link">Pedidos recebidos</a>.
+      </div>
+      <a href="{% url 'pets:meus_animais' %}" class="btn btn-outline-secondary">Voltar</a>
+    {% else %}
+      <p class="text-body-secondary">
+        {{ pet.nome }} sai do catálogo, junto com as vacinas registradas. Esta ação não pode ser desfeita.
+      </p>
+      <form method="post" class="d-flex justify-content-center gap-2">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Remover</button>
+        <a href="{% url 'pets:meus_animais' %}" class="btn btn-outline-secondary">Cancelar</a>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

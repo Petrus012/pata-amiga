@@ -40,6 +40,10 @@
           </li>
         {% elif user.eh_ong %}
           <li class="nav-item">
+            <a class="nav-link {% if rota == 'pets:meus_animais' or rota == 'pets:cadastrar' or rota == 'pets:editar' or rota == 'pets:remover' %}active{% endif %}"
+               href="{% url 'pets:meus_animais' %}">Meus animais</a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link {% if rota == 'adocoes:recebidos' or rota == 'adocoes:responder' %}active{% endif %}"
                href="{% url 'adocoes:recebidos' %}">Pedidos recebidos</a>
           </li>
