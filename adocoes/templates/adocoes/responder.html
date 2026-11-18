@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block titulo %}Pedido de {{ pedido.adotante }}{% endblock %}
+
+{% block conteudo %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'adocoes:recebidos' %}">Pedidos recebidos</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ pedido.pet.nome }}</li>
+  </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+  <h1 class="h2 mb-0">Pedido para {{ pedido.pet.nome }}</h1>
+  {% include "adocoes/_status_badge.html" with status=pedido.status rotulo=pedido.get_status_display %}
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">Adotante</h2>
+        <p class="mb-1"><strong>{{ pedido.adotante }}</strong>{% if pedido.adotante.cidade %}, {{ pedido.adotante.cidade }}{% endif %}</p>
+        <ul class="list-unstyled small mb-3">
+          {% if pedido.adotante.email %}<li><i class="bi bi-envelope" aria-hidden="true"></i> {{ pedido.adotante.email }}</li>{% endif %}
+          {% if pedido.adotante.telefone %}<li><i class="bi bi-telephone" aria-hidden="true"></i> {{ pedido.adotante.telefone }}</li>{% endif %}
+        </ul>
+
+        {% with perfil=pedido.adotante.perfil %}
+          {% if perfil %}
+            <ul class="list-unstyled small mb-3">
+              {% if perfil.tipo_moradia %}<li><strong>Moradia:</strong> {{ perfil.get_tipo_moradia_display }}</li>{% endif %}
+              <li><strong>Já tem outros animais:</strong> {% if perfil.tem_outros_animais %}sim{% else %}não{% endif %}</li>
+              {% if perfil.bio %}<li><strong>Apresentação:</strong> {{ perfil.bio }}</li>{% endif %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+
+        <h3 class="h6">Mensagem do adotante</h3>
+        <p class="mb-0">{{ pedido.mensagem|linebreaksbr }}</p>
+        <p class="small text-body-secondary mt-2 mb-0">
+          Enviado em {{ pedido.solicitado_em|date:"d/m/Y H:i" }}
+          {% if pedido.respondido_em %}&middot; respondido em {{ pedido.respondido_em|date:"d/m/Y H:i" }}{% endif %}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">Animal</h2>
+        <p class="mb-3">
+          <strong>{{ pedido.pet.nome }}</strong>, {{ pedido.pet.especie }}.
+          Situação atual: {{ pedido.pet.get_status_display }}.
+        </p>
+
+        <h2 class="h5">Resposta</h2>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">{{ form.non_field_errors|join:" " }}</div>
+          {% endif %}
+
+          {% if pedido.transicoes_possiveis %}
+            <div class="mb-3">
+              <label for="{{ form.resposta.id_for_label }}" class="form-label">{{ form.resposta.label }}</label>
+              {{ form.resposta }}
+              {% if form.resposta.errors %}
+                <div class="text-danger small mt-1">{{ form.resposta.errors|join:" " }}</div>
+              {% endif %}
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+              {% for status in pedido.transicoes_possiveis %}
+                {% if status == "EM_ANALISE" %}
+                  <button type="submit" name="acao" value="analisar" class="btn btn-info">Colocar em análise</button>
+                {% elif status == "APROVADO" %}
+                  <button type="submit" name="acao" value="aprovar" class="btn btn-success">Aprovar</button>
+                {% elif status == "CONCLUIDO" %}
+                  <button type="submit" name="acao" value="concluir" class="btn btn-primary">Concluir adoção</button>
+                {% elif status == "RECUSADO" %}
+                  <button type="submit" name="acao" value="recusar" class="btn btn-outline-danger">Recusar</button>
+                {% endif %}
+              {% endfor %}
+            </div>
+            <p class="form-text mt-2 mb-0">
+              Ao concluir a adoção, o animal sai do catálogo e os demais pedidos em aberto dele são recusados.
+            </p>
+          {% else %}
+            <p class="text-body-secondary">Este pedido está encerrado e não pode mais ser alterado.</p>
+            {% if pedido.resposta_ong %}
+              <div class="border rounded p-2 bg-body-tertiary">{{ pedido.resposta_ong|linebreaksbr }}</div>
+            {% endif %}
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
