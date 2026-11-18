@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ pet.nome }}{% endblock %}
+
+{% block conteudo %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'pets:catalogo' %}">Animais</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ pet.nome }}</li>
+  </ol>
+</nav>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    {% if pet.foto %}
+      <img src="{{ pet.foto.url }}" class="img-fluid rounded w-100 foto-detalhe" alt="Foto de {{ pet.nome }}">
+    {% else %}
+      <div class="rounded foto-detalhe foto-pendente" aria-hidden="true"><i class="bi bi-camera"></i></div>
+    {% endif %}
+  </div>
+
+  <div class="col-md-6">
+    <div class="d-flex justify-content-between align-items-start gap-2">
+      <h1 class="h2 mb-1">{{ pet.nome }}</h1>
+      {% if not pet.disponivel %}
+        <span class="badge text-bg-warning">{{ pet.get_status_display }}</span>
+      {% endif %}
+    </div>
+    <p class="text-body-secondary">{{ pet.especie }}{% if pet.raca %} &middot; {{ pet.raca.nome }}{% endif %}</p>
+
+    <dl class="row mb-3">
+      <dt class="col-5">Sexo</dt><dd class="col-7">{{ pet.get_sexo_display }}</dd>
+      <dt class="col-5">Porte</dt><dd class="col-7">{{ pet.get_porte_display }}</dd>
+      <dt class="col-5">Idade</dt>
+      <dd class="col-7">
+        {{ pet.faixa_etaria }}{% if pet.idade_aproximada %} ({{ pet.idade_aproximada }} ano{{ pet.idade_aproximada|pluralize }}){% endif %}
+      </dd>
+      <dt class="col-5">Castrado</dt><dd class="col-7">{% if pet.castrado %}Sim{% else %}Não{% endif %}</dd>
+      <dt class="col-5">Vacinado</dt><dd class="col-7">{% if pet.vacinado %}Sim{% else %}Não{% endif %}</dd>
+    </dl>
+
+    <p>{{ pet.descricao|linebreaksbr }}</p>
+
+    {% if user.eh_adotante %}
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        {% if pet.status == "ADOTADO" %}
+          <div class="alert alert-secondary mb-0 w-100">{{ pet.nome }} já foi adotado e não recebe novos pedidos.</div>
+        {% elif pedido_aberto %}
+          <div class="alert alert-info mb-0 w-100">
+            Você já tem um pedido para {{ pet.nome }}
+            ({{ pedido_aberto.get_status_display|lower }}).
+            <a href="{% url 'adocoes:meus_pedidos' %}" class="alert-link">Acompanhar</a>
+          </div>
+        {% else %}
+          <a href="{% url 'adocoes:solicitar' pet.pk %}" class="btn btn-success">
+            <i class="bi bi-heart-fill" aria-hidden="true"></i> Quero adotar
+          </a>
+        {% endif %}
+
+        <form method="post" action="{% url 'adocoes:alternar_favorito' pet.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <button type="submit" class="btn btn-outline-secondary">
+            {% if favoritado %}
+              <i class="bi bi-star-fill text-warning" aria-hidden="true"></i> Remover dos favoritos
+            {% else %}
+              <i class="bi bi-star" aria-hidden="true"></i> Favoritar
+            {% endif %}
+          </button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-4 mt-1">
+  <div class="col-md-6">
+    <h2 class="h5">Vacinas</h2>
+    {% if pet.vacinas.all %}
+      <table class="table table-sm">
+        <thead><tr><th>Vacina</th><th>Aplicada em</th></tr></thead>
+        <tbody>
+          {% for vacina in pet.vacinas.all %}
+            <tr>
+              <td>{{ vacina.nome }}{% if vacina.observacao %} <span class="text-body-secondary small">({{ vacina.observacao }})</span>{% endif %}</td>
+              <td>{{ vacina.data_aplicacao|date:"d/m/Y" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-body-secondary">Nenhuma vacina registrada.</p>
+    {% endif %}
+  </div>
+
+  <div class="col-md-6">
+    <h2 class="h5">Responsável</h2>
+    <p class="mb-1">
+      <strong>{{ pet.ong.nome_fantasia }}</strong>
+      {% if pet.ong.verificada %}<span class="badge rounded-pill bg-success-subtle text-success-emphasis">Verificada</span>{% endif %}
+    </p>
+    <p class="small text-body-secondary mb-1"><i class="bi bi-geo-alt" aria-hidden="true"></i> {{ pet.ong.cidade }}</p>
+    {% if pet.ong.descricao %}<p class="small">{{ pet.ong.descricao }}</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

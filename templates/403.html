@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block titulo %}Acesso negado{% endblock %}
+
+{% block conteudo %}
+<div class="text-center py-5">
+  <i class="bi bi-shield-lock fs-1 text-body-secondary" aria-hidden="true"></i>
+  <h1 class="h3 mt-3">Esta página não é para o seu perfil</h1>
+  <p class="text-body-secondary">
+    Você está logado, mas esta área é de outro tipo de conta.
+  </p>
+  <a href="{% url 'home' %}" class="btn btn-success">Voltar ao início</a>
+</div>
+{% endblock %}

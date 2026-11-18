@@ -65,3 +65,70 @@ class BaseTemplateTests(TestCase):
         self.assertIn("alert-danger", html)
         self.assertIn("alert-success", html)
         self.assertNotIn("alert-error", html)
+
+
+class NavbarPorPerfilTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Usuario = get_user_model()
+        cls.adotante = Usuario.objects.create_user("ana", password="senha")
+        cls.ong = Usuario.objects.create_user(
+            "ong1", password="senha", tipo=Usuario.Tipo.ONG
+        )
+
+    def itens(self, usuario=None):
+        self.client.logout()
+        if usuario:
+            self.client.force_login(usuario)
+        conteudo = self.client.get(reverse("home")).content.decode()
+        return {
+            "entrar": reverse("login") in conteudo,
+            "sair": reverse("logout") in conteudo,
+            "pedidos": reverse("adocoes:meus_pedidos") in conteudo,
+            "favoritos": reverse("adocoes:favoritos") in conteudo,
+            "recebidos": reverse("adocoes:recebidos") in conteudo,
+        }
+
+    def test_anonimo_ve_entrar_e_nenhum_menu_de_perfil(self):
+        self.assertEqual(
+            self.itens(),
+            {"entrar": True, "sair": False, "pedidos": False, "favoritos": False, "recebidos": False},
+        )
+
+    def test_adotante_ve_pedidos_e_favoritos(self):
+        self.assertEqual(
+            self.itens(self.adotante),
+            {"entrar": False, "sair": True, "pedidos": True, "favoritos": True, "recebidos": False},
+        )
+
+    def test_ong_ve_pedidos_recebidos(self):
+        self.assertEqual(
+            self.itens(self.ong),
+            {"entrar": False, "sair": True, "pedidos": False, "favoritos": False, "recebidos": True},
+        )
+
+    def test_logout_e_por_post_e_encerra_a_sessao(self):
+        self.client.force_login(self.adotante)
+        self.assertEqual(self.client.get(reverse("logout")).status_code, 405)
+        resposta = self.client.post(reverse("logout"))
+        self.assertRedirects(resposta, reverse("home"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+
+class LoginProvisorioTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.usuario = get_user_model().objects.create_user("ana", password="senha-forte-123")
+
+    def test_login_com_senha_certa_volta_para_a_pagina_pedida(self):
+        destino = reverse("pets:catalogo")
+        resposta = self.client.post(
+            f"{reverse('login')}?next={destino}",
+            {"username": "ana", "password": "senha-forte-123", "next": destino},
+        )
+        self.assertRedirects(resposta, destino)
+
+    def test_senha_errada_mostra_mensagem(self):
+        resposta = self.client.post(reverse("login"), {"username": "ana", "password": "errada"})
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, "Usuário ou senha incorretos")

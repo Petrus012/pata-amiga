@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -23,6 +23,21 @@ STATUS_EM_ABERTO = [StatusPedido.PENDENTE, StatusPedido.EM_ANALISE, StatusPedido
 
 # Enquanto o pedido está nestes status, a ONG ainda não deu uma resposta final.
 STATUS_AGUARDANDO_RESPOSTA = [StatusPedido.PENDENTE, StatusPedido.EM_ANALISE]
+
+# Para onde a ONG pode levar cada status. Recusado e concluído são finais.
+TRANSICOES = {
+    StatusPedido.PENDENTE: [StatusPedido.EM_ANALISE, StatusPedido.APROVADO, StatusPedido.RECUSADO],
+    StatusPedido.EM_ANALISE: [StatusPedido.APROVADO, StatusPedido.RECUSADO],
+    StatusPedido.APROVADO: [StatusPedido.CONCLUIDO, StatusPedido.RECUSADO],
+    StatusPedido.RECUSADO: [],
+    StatusPedido.CONCLUIDO: [],
+}
+
+MENSAGEM_RECUSA_AUTOMATICA = "Este animal foi adotado por outro candidato."
+
+
+class TransicaoInvalida(Exception):
+    """A ONG tentou uma mudança de status que a regra de negócio não permite."""
 
 
 class PedidoAdocao(models.Model):
@@ -85,6 +100,49 @@ class PedidoAdocao(models.Model):
     @property
     def em_aberto(self):
         return self.status in STATUS_EM_ABERTO
+
+    @property
+    def transicoes_possiveis(self):
+        return TRANSICOES[self.status]
+
+    @transaction.atomic
+    def mudar_status(self, novo_status, resposta=""):
+        """Aplica a decisão da ONG e mantém o animal e os outros pedidos coerentes."""
+        if novo_status not in TRANSICOES[self.status]:
+            raise TransicaoInvalida(
+                f"Um pedido {self.get_status_display().lower()} não pode ir para {novo_status}."
+            )
+
+        outros = self.pet.pedidos.exclude(pk=self.pk)
+        if novo_status == StatusPedido.APROVADO and outros.filter(
+            status=StatusPedido.APROVADO
+        ).exists():
+            raise TransicaoInvalida(
+                "Este animal já tem um pedido aprovado. Conclua ou recuse esse pedido antes."
+            )
+
+        self.status = novo_status
+        if resposta:
+            self.resposta_ong = resposta
+        self.save()
+
+        pet = self.pet
+        if novo_status == StatusPedido.APROVADO:
+            pet.status = Pet.Status.EM_PROCESSO
+        elif novo_status == StatusPedido.CONCLUIDO:
+            pet.status = Pet.Status.ADOTADO
+            # Quem não foi escolhido recebe a recusa na hora, em vez de ficar pendente
+            # para sempre em um animal que não está mais disponível.
+            outros.filter(status__in=STATUS_EM_ABERTO).update(
+                status=StatusPedido.RECUSADO,
+                resposta_ong=MENSAGEM_RECUSA_AUTOMATICA,
+                respondido_em=timezone.now(),
+            )
+        elif novo_status == StatusPedido.RECUSADO and pet.status == Pet.Status.EM_PROCESSO:
+            # Só volta a ficar disponível se não houver outro candidato aprovado.
+            if not outros.filter(status=StatusPedido.APROVADO).exists():
+                pet.status = Pet.Status.DISPONIVEL
+        pet.save(update_fields=["status", "atualizado_em"])
 
 
 class Favorito(models.Model):

@@ -20,6 +20,10 @@ class CatalogoTests(TestCase):
         )
         cls.gato = Especie.objects.create(nome="Gato")
         cls.siames = Raca.objects.create(nome="Siamês", especie=cls.gato)
+        cls.adotante = Usuario.objects.create_user("ana", password="senha")
+
+    def setUp(self):
+        self.client.force_login(self.adotante)
 
     def criar_pet(self, nome, **extras):
         dados = {
@@ -35,6 +39,11 @@ class CatalogoTests(TestCase):
 
     def nomes_listados(self, resposta):
         return [pet.nome for pet in resposta.context["pets"]]
+
+    def test_anonimo_vai_para_o_login(self):
+        self.client.logout()
+        resposta = self.client.get(self.url)
+        self.assertRedirects(resposta, f"{reverse('login')}?next={self.url}")
 
     def test_usa_o_template_do_catalogo_com_o_base(self):
         resposta = self.client.get(self.url)
@@ -94,9 +103,9 @@ class CatalogoTests(TestCase):
     def test_consulta_nao_cresce_com_o_numero_de_animais(self):
         for indice in range(12):
             self.criar_pet(f"Pet {indice}", raca=self.siames)
-        # Uma consulta para a contagem da paginação e outra para a listagem com
-        # espécie, raça e ONG já carregadas. Sem select_related seriam dezenas.
-        with self.assertNumQueries(2):
+        # Sessão e usuário logado, a contagem da paginação e a listagem com espécie,
+        # raça e ONG já carregadas. Sem select_related seriam dezenas de consultas.
+        with self.assertNumQueries(4):
             self.client.get(self.url)
 
     def test_pagina_de_doze_em_doze(self):

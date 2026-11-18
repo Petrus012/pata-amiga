@@ -185,3 +185,9 @@ JAZZMIN_UI_TWEAKS = {
     "navbar_fixed": True,
     "sidebar_nav_child_indent": True,
 }
+
+# Autenticação
+
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "home"
