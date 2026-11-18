@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block titulo %}Entrar{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-4">
+    <h1 class="h3 mb-3">Entrar</h1>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.errors %}
+        <div class="alert alert-danger" role="alert">
+          Usuário ou senha incorretos. Confira os dados e tente de novo.
+        </div>
+      {% endif %}
+
+      <div class="mb-3">
+        <label for="id_username" class="form-label">Usuário</label>
+        <input type="text" name="username" id="id_username" class="form-control" autofocus required
+               autocomplete="username" value="{{ form.username.value|default:'' }}">
+      </div>
+      <div class="mb-3">
+        <label for="id_password" class="form-label">Senha</label>
+        <input type="password" name="password" id="id_password" class="form-control" required
+               autocomplete="current-password">
+      </div>
+
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="btn btn-success w-100">Entrar</button>
+    </form>
+
+    {% url 'contas:cadastro' as url_cadastro %}
+    {% if url_cadastro %}
+      <p class="text-center mt-3 mb-0">Ainda não tem conta? <a href="{{ url_cadastro }}">Cadastre-se</a></p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
