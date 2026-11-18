@@ -1,10 +1,94 @@
 from django import forms
 from django.core.files.uploadedfile import UploadedFile
+from django.db.models import Q
 from django.forms import inlineformset_factory
 
-from .models import IDADE_MAXIMA, Pet, Raca, Vacina
+from .models import (
+    FAIXAS_ETARIAS,
+    IDADE_MAXIMA,
+    Especie,
+    Pet,
+    Raca,
+    Vacina,
+    filtro_faixa_etaria,
+)
 
 TAMANHO_MAXIMO_FOTO_MB = 5
+
+
+class CatalogoFiltroForm(forms.Form):
+    """Busca e filtros do catálogo, enviados pela URL (GET).
+
+    Cada filtro vale sozinho: um valor inválido na URL, como uma espécie que não
+    existe, é descartado sem derrubar os outros filtros.
+    """
+
+    q = forms.CharField(
+        required=False,
+        label="Buscar",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "type": "search",
+                "placeholder": "Nome, raça, ONG ou cidade",
+            }
+        ),
+    )
+    especie = forms.ModelChoiceField(
+        queryset=Especie.objects.all(),
+        required=False,
+        label="Espécie",
+        empty_label="Todas as espécies",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    porte = forms.ChoiceField(
+        required=False,
+        choices=[("", "Qualquer porte"), *Pet.Porte.choices],
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    sexo = forms.ChoiceField(
+        required=False,
+        choices=[("", "Qualquer sexo"), *Pet.Sexo.choices],
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    faixa = forms.ChoiceField(
+        required=False,
+        label="Faixa etária",
+        choices=[("", "Qualquer idade"), *[(c, r) for c, r, _, _ in FAIXAS_ETARIAS]],
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    def valores(self):
+        # Depois de is_valid(), cleaned_data guarda só os campos válidos. Os inválidos
+        # ficam de fora, e por isso são ignorados um a um.
+        self.is_valid()
+        return {campo: valor for campo, valor in self.cleaned_data.items() if valor}
+
+    @property
+    def ativo(self):
+        return bool(self.valores())
+
+    def filtrar(self, animais):
+        valores = self.valores()
+        # Cada palavra precisa aparecer em algum lugar: "gato lavras" acha gatos de
+        # ONGs de Lavras, e não todos os gatos mais tudo o que é de Lavras.
+        for palavra in valores.get("q", "").split():
+            animais = animais.filter(
+                Q(nome__icontains=palavra)
+                | Q(raca__nome__icontains=palavra)
+                | Q(especie__nome__icontains=palavra)
+                | Q(ong__nome_fantasia__icontains=palavra)
+                | Q(ong__cidade__icontains=palavra)
+            )
+        if "especie" in valores:
+            animais = animais.filter(especie=valores["especie"])
+        if "porte" in valores:
+            animais = animais.filter(porte=valores["porte"])
+        if "sexo" in valores:
+            animais = animais.filter(sexo=valores["sexo"])
+        if "faixa" in valores:
+            animais = animais.filter(filtro_faixa_etaria(valores["faixa"]))
+        return animais
 
 
 class PetForm(forms.ModelForm):

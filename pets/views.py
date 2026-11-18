@@ -9,7 +9,7 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, U
 from adocoes.models import STATUS_EM_ABERTO, Favorito, PedidoAdocao
 from contas.mixins import OngRequiredMixin
 
-from .forms import PetForm, VacinaFormSet
+from .forms import CatalogoFiltroForm, PetForm, VacinaFormSet
 from .models import Pet
 
 
@@ -21,9 +21,14 @@ class CatalogoView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         # Animais em processo de adoção continuam visíveis, porque o pedido ainda pode
         # não dar certo. Só os já adotados saem do catálogo.
-        return Pet.objects.exclude(status=Pet.Status.ADOTADO).select_related(
+        animais = Pet.objects.exclude(status=Pet.Status.ADOTADO).select_related(
             "especie", "raca", "ong"
         )
+        self.filtros = CatalogoFiltroForm(self.request.GET)
+        return self.filtros.filtrar(animais)
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(filtros=self.filtros, **kwargs)
 
 
 class DetalheView(LoginRequiredMixin, DetailView):
