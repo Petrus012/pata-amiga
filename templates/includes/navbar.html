@@ -18,26 +18,69 @@
       </button>
     </div>
 
+    {% with rota=request.resolver_match.view_name %}
     <div class="collapse navbar-collapse" id="menu-principal">
       <ul class="navbar-nav me-auto">
         <li class="nav-item">
-          <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}"
+          <a class="nav-link {% if rota == 'home' %}active{% endif %}"
              href="{% url 'home' %}">Início</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {% if request.resolver_match.url_name == 'catalogo' %}active{% endif %}"
+          <a class="nav-link {% if rota == 'pets:catalogo' or rota == 'pets:detalhe' %}active{% endif %}"
              href="{% url 'pets:catalogo' %}">Animais</a>
         </li>
+        {% if user.eh_adotante %}
+          <li class="nav-item">
+            <a class="nav-link {% if rota == 'adocoes:meus_pedidos' %}active{% endif %}"
+               href="{% url 'adocoes:meus_pedidos' %}">Meus pedidos</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if rota == 'adocoes:favoritos' %}active{% endif %}"
+               href="{% url 'adocoes:favoritos' %}">Favoritos</a>
+          </li>
+        {% elif user.eh_ong %}
+          <li class="nav-item">
+            <a class="nav-link {% if rota == 'adocoes:recebidos' or rota == 'adocoes:responder' %}active{% endif %}"
+               href="{% url 'adocoes:recebidos' %}">Pedidos recebidos</a>
+          </li>
+        {% endif %}
       </ul>
-      {% if user.is_staff %}
-        <ul class="navbar-nav">
+
+      <ul class="navbar-nav align-items-lg-center">
+        {% if user.is_staff %}
           <li class="nav-item">
             <a class="nav-link" href="{% url 'admin:index' %}">
               <i class="bi bi-speedometer2" aria-hidden="true"></i> Administração
             </a>
           </li>
-        </ul>
-      {% endif %}
+        {% endif %}
+        {% if user.is_authenticated %}
+          <li class="nav-item">
+            <span class="navbar-text me-lg-2">
+              <i class="bi bi-person-circle" aria-hidden="true"></i> {{ user }}
+            </span>
+          </li>
+          <li class="nav-item">
+            {# O logout do Django só aceita POST, por isso é um formulário e não um link. #}
+            <form method="post" action="{% url 'logout' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-secondary btn-sm">Sair</button>
+            </form>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a class="nav-link {% if rota == 'login' %}active{% endif %}" href="{% url 'login' %}">Entrar</a>
+          </li>
+          {# O cadastro é de outra frente. O link aparece quando a rota existir. #}
+          {% url 'contas:cadastro' as url_cadastro %}
+          {% if url_cadastro %}
+            <li class="nav-item">
+              <a class="btn btn-success btn-sm" href="{{ url_cadastro }}">Cadastre-se</a>
+            </li>
+          {% endif %}
+        {% endif %}
+      </ul>
     </div>
+    {% endwith %}
   </div>
 </nav>
