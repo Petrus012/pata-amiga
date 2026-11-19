@@ -115,7 +115,7 @@ class NavbarPorPerfilTests(TestCase):
         self.assertNotIn("_auth_user_id", self.client.session)
 
 
-class LoginProvisorioTests(TestCase):
+class LoginTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.usuario = get_user_model().objects.create_user("ana", password="senha-forte-123")

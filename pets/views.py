@@ -82,6 +82,9 @@ class MeusAnimaisView(AnimaisDaOngMixin, ListView):
                 ),
                 total_vacinas=Count("vacinas", distinct=True),
             )
+            # O annotate desfaz a ordenação padrão do modelo, e a paginação sem ordem
+            # pode repetir ou pular animais entre as páginas.
+            .order_by("-criado_em")
         )
 
     def get_context_data(self, **kwargs):
