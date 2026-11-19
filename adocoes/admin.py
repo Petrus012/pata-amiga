@@ -1,7 +1,16 @@
-from django.contrib import admin
+from django import forms
+from django.contrib import admin, messages
 from django.utils.html import format_html
 
-from .models import STATUS_EM_ABERTO, Acompanhamento, Favorito, PedidoAdocao, StatusPedido
+from .models import (
+    STATUS_EM_ABERTO,
+    TRANSICOES,
+    Acompanhamento,
+    Favorito,
+    PedidoAdocao,
+    StatusPedido,
+    TransicaoInvalida,
+)
 
 # Classes de cor do Bootstrap 5, que é a versão usada pelo Jazzmin.
 CORES_STATUS = {
@@ -11,6 +20,32 @@ CORES_STATUS = {
     StatusPedido.RECUSADO: "text-bg-danger",
     StatusPedido.CONCLUIDO: "text-bg-secondary",
 }
+
+
+class PedidoAdocaoForm(forms.ModelForm):
+    """Submete o admin às mesmas transições de status que o painel da ONG usa.
+
+    Sem isto o admin gravava o status direto, e concluir um pedido por aqui deixava o
+    animal como disponível.
+    """
+
+    class Meta:
+        model = PedidoAdocao
+        fields = "__all__"
+
+    def clean_status(self):
+        novo = self.cleaned_data["status"]
+        # Em _clean_fields a instância ainda tem o status que está no banco, que é
+        # justamente o ponto de partida da transição.
+        if not self.instance.pk or novo == self.instance.status:
+            return novo
+        if novo not in TRANSICOES[self.instance.status]:
+            atual = self.instance.get_status_display().lower()
+            destino = dict(StatusPedido.choices)[novo].lower()
+            raise forms.ValidationError(
+                f"Um pedido {atual} não pode passar para {destino}."
+            )
+        return novo
 
 
 class SituacaoPedidoFilter(admin.SimpleListFilter):
@@ -73,6 +108,22 @@ class PedidoAdocaoAdmin(admin.ModelAdmin):
         ("Análise da ONG", {"fields": ["status", "resposta_ong"]}),
         ("Registro", {"fields": ["solicitado_em", "respondido_em"]}),
     ]
+
+    form = PedidoAdocaoForm
+
+    def save_model(self, request, obj, form, change):
+        """Troca o status pelo mudar_status, para o animal e os outros pedidos seguirem junto."""
+        if not change or "status" not in form.changed_data:
+            return super().save_model(request, obj, form, change)
+
+        novo_status = obj.status
+        # mudar_status valida a partir do status atual, então a instância volta ao
+        # valor do banco antes da chamada.
+        obj.status = form.initial["status"]
+        try:
+            obj.mudar_status(novo_status, resposta=obj.resposta_ong)
+        except TransicaoInvalida as erro:
+            messages.error(request, str(erro))
 
     def restrito_a_ong(self, request):
         # Superusuário e administrador veem tudo. A ONG vê só o que é dela.
