@@ -175,6 +175,9 @@ class Command(BaseCommand):
             for pet in random.sample(pets, 3):
                 Favorito.objects.get_or_create(usuario=adotante, pet=pet)
 
+        # Fotos CC0 de pets pelo comando do app pets, só nos animais que ainda não têm.
+        call_command("fotos_demo", stdout=self.stdout)
+
         self.stdout.write(
             self.style.SUCCESS(
                 f"Pronto: {Ong.objects.count()} ONGs, {Pet.objects.count()} animais, "
