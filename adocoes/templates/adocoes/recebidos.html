@@ -18,7 +18,8 @@
 </ul>
 
 {% if pedidos %}
-  <div class="table-responsive">
+  {# position-relative: sem ele, os textos visually-hidden do cabeçalho escapam da rolagem da tabela e alargam a página no celular. #}
+  <div class="table-responsive position-relative">
     <table class="table table-hover align-middle">
       <thead>
         <tr>
