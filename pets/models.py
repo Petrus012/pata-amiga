@@ -1,6 +1,26 @@
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
 from django.db import models
 from django.urls import reverse
+
+IDADE_MAXIMA = 30
+
+# Fonte única dos limites de cada faixa, em anos: a propriedade Pet.faixa_etaria,
+# o filtro do admin e o filtro do catálogo leem desta lista.
+FAIXAS_ETARIAS = [
+    ("filhote", "Filhote", 0, 0),
+    ("jovem", "Jovem", 1, 2),
+    ("adulto", "Adulto", 3, 7),
+    ("idoso", "Idoso", 8, IDADE_MAXIMA),
+]
+
+
+def filtro_faixa_etaria(chave):
+    """Devolve o filtro de consulta da faixa, ou None se a chave não existir."""
+    for faixa, _, minimo, maximo in FAIXAS_ETARIAS:
+        if faixa == chave:
+            return models.Q(idade_aproximada__range=(minimo, maximo))
+    return None
 
 
 class Especie(models.Model):
@@ -79,6 +99,7 @@ class Pet(models.Model):
     porte = models.CharField(max_length=1, choices=Porte.choices)
     idade_aproximada = models.PositiveSmallIntegerField(
         help_text="Idade aproximada em anos. Use 0 para filhotes com menos de um ano.",
+        validators=[MaxValueValidator(IDADE_MAXIMA)],
     )
     castrado = models.BooleanField(default=False)
     vacinado = models.BooleanField(default=False)
@@ -120,13 +141,10 @@ class Pet(models.Model):
 
     @property
     def faixa_etaria(self):
-        if self.idade_aproximada == 0:
-            return "Filhote"
-        if self.idade_aproximada <= 2:
-            return "Jovem"
-        if self.idade_aproximada <= 7:
-            return "Adulto"
-        return "Idoso"
+        for _, rotulo, _, maximo in FAIXAS_ETARIAS:
+            if self.idade_aproximada <= maximo:
+                return rotulo
+        return FAIXAS_ETARIAS[-1][1]
 
 
 class Vacina(models.Model):

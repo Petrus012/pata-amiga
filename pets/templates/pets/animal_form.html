@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block titulo %}{% if object %}Editar {{ object.nome }}{% else %}Cadastrar animal{% endif %}{% endblock %}
+
+{% block conteudo %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'pets:meus_animais' %}">Meus animais</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{% if object %}{{ object.nome }}{% else %}Novo animal{% endif %}</li>
+  </ol>
+</nav>
+
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <h1 class="h2 mb-3">{% if object %}Editar {{ object.nome }}{% else %}Cadastrar animal{% endif %}</h1>
+
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger" role="alert">{{ form.non_field_errors|join:" " }}</div>
+      {% endif %}
+
+      <div class="row g-3">
+        <div class="col-md-6">{% include "pets/_campo.html" with campo=form.nome %}</div>
+        <div class="col-sm-6 col-md-3">{% include "pets/_campo.html" with campo=form.especie %}</div>
+        <div class="col-sm-6 col-md-3">{% include "pets/_campo.html" with campo=form.raca %}</div>
+
+        <div class="col-sm-4">{% include "pets/_campo.html" with campo=form.sexo %}</div>
+        <div class="col-sm-4">{% include "pets/_campo.html" with campo=form.porte %}</div>
+        <div class="col-sm-4">{% include "pets/_campo.html" with campo=form.idade_aproximada %}</div>
+
+        <div class="col-12">{% include "pets/_campo.html" with campo=form.descricao %}</div>
+
+        <div class="col-12">
+          <div class="form-check form-check-inline">
+            {{ form.castrado }}
+            <label class="form-check-label" for="{{ form.castrado.id_for_label }}">Castrado</label>
+          </div>
+          <div class="form-check form-check-inline">
+            {{ form.vacinado }}
+            <label class="form-check-label" for="{{ form.vacinado.id_for_label }}">Vacinado</label>
+          </div>
+        </div>
+
+        <div class="col-12">
+          {% if object.foto %}
+            <img src="{{ object.foto.url }}" alt="Foto atual de {{ object.nome }}" width="120" height="90"
+                 class="rounded object-fit-cover d-block mb-2">
+          {% endif %}
+          {% include "pets/_campo.html" with campo=form.foto %}
+        </div>
+      </div>
+
+      <h2 class="h5 mt-4">Vacinas</h2>
+      <p class="small text-body-secondary">
+        Preencha uma linha por vacina. A linha em branco pode ficar vazia; marque "remover" para apagar uma vacina ao salvar.
+      </p>
+      {{ vacinas.management_form }}
+      {% if vacinas.non_form_errors %}
+        <div class="alert alert-danger" role="alert">{{ vacinas.non_form_errors|join:" " }}</div>
+      {% endif %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Vacina</th>
+              <th>Aplicada em</th>
+              <th>Observação</th>
+              <th class="text-center">Remover</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in vacinas %}
+              <tr>
+                <td style="min-width: 140px">
+                  {% for oculto in linha.hidden_fields %}{{ oculto }}{% endfor %}
+                  {{ linha.nome }}
+                  {% if linha.nome.errors %}<div class="text-danger small">{{ linha.nome.errors|join:" " }}</div>{% endif %}
+                </td>
+                <td style="min-width: 150px">
+                  {{ linha.data_aplicacao }}
+                  {% if linha.data_aplicacao.errors %}<div class="text-danger small">{{ linha.data_aplicacao.errors|join:" " }}</div>{% endif %}
+                </td>
+                <td style="min-width: 140px">{{ linha.observacao }}</td>
+                <td class="text-center">
+                  {% if linha.instance.pk %}{{ linha.DELETE }}{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex gap-2 mt-2">
+        <button type="submit" class="btn btn-success">Salvar</button>
+        <a href="{% url 'pets:meus_animais' %}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

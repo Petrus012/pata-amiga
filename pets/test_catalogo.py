@@ -103,9 +103,10 @@ class CatalogoTests(TestCase):
     def test_consulta_nao_cresce_com_o_numero_de_animais(self):
         for indice in range(12):
             self.criar_pet(f"Pet {indice}", raca=self.siames)
-        # Sessão e usuário logado, a contagem da paginação e a listagem com espécie,
-        # raça e ONG já carregadas. Sem select_related seriam dezenas de consultas.
-        with self.assertNumQueries(4):
+        # Sessão e usuário logado, a contagem da paginação, as espécies do filtro de busca
+        # e a listagem com espécie, raça e ONG já carregadas. Sem select_related seriam
+        # dezenas de consultas.
+        with self.assertNumQueries(5):
             self.client.get(self.url)
 
     def test_pagina_de_doze_em_doze(self):

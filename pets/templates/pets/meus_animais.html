@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block titulo %}Meus animais{% endblock %}
+
+{% block conteudo %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h2 mb-1">Meus animais</h1>
+    <p class="text-body-secondary mb-0">Animais cadastrados por {{ user.ong.nome_fantasia }}.</p>
+  </div>
+  <a href="{% url 'pets:cadastrar' %}" class="btn btn-success">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i> Cadastrar animal
+  </a>
+</div>
+
+<ul class="list-inline small text-body-secondary mb-3">
+  <li class="list-inline-item">{{ resumo.total }} no total</li>
+  <li class="list-inline-item">&middot; {{ resumo.disponiveis }} disponíve{{ resumo.disponiveis|pluralize:"l,is" }}</li>
+  <li class="list-inline-item">&middot; {{ resumo.em_processo }} em processo de adoção</li>
+  <li class="list-inline-item">&middot; {{ resumo.adotados }} adotado{{ resumo.adotados|pluralize }}</li>
+</ul>
+
+{% if pets %}
+  {# position-relative: sem ele, os textos visually-hidden do cabeçalho escapam da rolagem da tabela e alargam a página no celular. #}
+  <div class="table-responsive position-relative">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th><span class="visually-hidden">Foto</span></th>
+          <th>Animal</th>
+          <th>Status</th>
+          <th class="text-center">Pedidos em aberto</th>
+          <th class="text-center">Vacinas</th>
+          <th><span class="visually-hidden">Ações</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pet in pets %}
+          <tr>
+            <td style="width: 64px">
+              {% if pet.foto %}
+                <img src="{{ pet.foto.url }}" alt="" width="48" height="48" class="rounded object-fit-cover">
+              {% else %}
+                <span class="rounded foto-pendente fs-5" style="width: 48px; height: 48px" aria-hidden="true">
+                  <i class="bi bi-camera"></i>
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{{ pet.get_absolute_url }}" class="link-body-emphasis fw-semibold">{{ pet.nome }}</a>
+              <div class="small text-body-secondary">
+                {{ pet.especie }}{% if pet.raca %} &middot; {{ pet.raca.nome }}{% endif %} &middot; {{ pet.faixa_etaria }}
+              </div>
+            </td>
+            <td>
+              {% if pet.status == "DISPONIVEL" %}<span class="badge text-bg-success">{{ pet.get_status_display }}</span>
+              {% elif pet.status == "EM_PROCESSO" %}<span class="badge text-bg-warning">{{ pet.get_status_display }}</span>
+              {% else %}<span class="badge text-bg-secondary">{{ pet.get_status_display }}</span>{% endif %}
+            </td>
+            <td class="text-center">
+              {% if pet.pedidos_abertos %}
+                <a href="{% url 'adocoes:recebidos' %}" class="link-body-emphasis">{{ pet.pedidos_abertos }}</a>
+              {% else %}
+                <span class="text-body-secondary">0</span>
+              {% endif %}
+            </td>
+            <td class="text-center">{{ pet.total_vacinas }}</td>
+            <td class="text-end text-nowrap">
+              <a href="{% url 'pets:editar' pet.pk %}" class="btn btn-sm btn-outline-success">Editar</a>
+              <a href="{% url 'pets:remover' pet.pk %}" class="btn btn-sm btn-outline-danger">Remover</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "includes/paginacao.html" %}
+{% else %}
+  <div class="text-center text-body-secondary py-5">
+    <i class="bi bi-clipboard-heart fs-1" aria-hidden="true"></i>
+    <p class="mt-2 mb-3">Nenhum animal cadastrado ainda.</p>
+    <a href="{% url 'pets:cadastrar' %}" class="btn btn-success">Cadastrar o primeiro animal</a>
+  </div>
+{% endif %}
+{% endblock %}

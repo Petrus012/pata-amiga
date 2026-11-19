@@ -1,7 +1,9 @@
 import io
+import re
 import tempfile
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.contrib.staticfiles import finders
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -13,7 +15,15 @@ from PIL import Image
 
 from contas.models import Ong
 
-from .models import Especie, Pet, Raca, Vacina
+from .models import (
+    FAIXAS_ETARIAS,
+    IDADE_MAXIMA,
+    Especie,
+    Pet,
+    Raca,
+    Vacina,
+    filtro_faixa_etaria,
+)
 
 
 class PetCleanTests(TestCase):
@@ -71,6 +81,40 @@ class FaixaEtariaTests(TestCase):
         for idade, esperado in casos.items():
             with self.subTest(idade=idade):
                 self.assertEqual(Pet(idade_aproximada=idade).faixa_etaria, esperado)
+
+    def test_propriedade_e_filtro_concordam_em_todas_as_idades(self):
+        # A propriedade calcula em Python e o filtro consulta o banco. Os dois leem
+        # FAIXAS_ETARIAS, e este teste garante que nenhuma idade cai em faixa diferente.
+        rotulos = {chave: rotulo for chave, rotulo, _, _ in FAIXAS_ETARIAS}
+        for idade in range(IDADE_MAXIMA + 1):
+            pet = Pet(idade_aproximada=idade)
+            faixas_que_aceitam = [
+                chave
+                for chave, _, minimo, maximo in FAIXAS_ETARIAS
+                if minimo <= idade <= maximo
+            ]
+            with self.subTest(idade=idade):
+                self.assertEqual(len(faixas_que_aceitam), 1)
+                self.assertEqual(rotulos[faixas_que_aceitam[0]], pet.faixa_etaria)
+
+    def test_filtro_de_faixa_desconhecida_e_ignorado(self):
+        self.assertIsNone(filtro_faixa_etaria("bebe"))
+        self.assertIsNone(filtro_faixa_etaria(None))
+
+
+class IdadeMaximaTests(TestCase):
+    def test_idade_acima_do_limite_e_recusada(self):
+        pet = Pet(idade_aproximada=IDADE_MAXIMA + 1)
+        with self.assertRaises(ValidationError) as erro:
+            pet.full_clean()
+        self.assertIn("idade_aproximada", erro.exception.message_dict)
+
+    def test_idade_no_limite_e_aceita(self):
+        pet = Pet(idade_aproximada=IDADE_MAXIMA)
+        with self.assertRaises(ValidationError) as erro:
+            pet.full_clean()
+        # Outros campos obrigatórios estão vazios, mas a idade em si é válida.
+        self.assertNotIn("idade_aproximada", erro.exception.message_dict)
 
 
 class AdminBaseTestCase(TestCase):
@@ -240,10 +284,16 @@ class PetAdminFormularioTests(AdminBaseTestCase):
                 self.assertEqual(resposta.status_code, 200)
                 self.assertContains(resposta, "vacinas-TOTAL_FORMS")
 
-    def test_nao_oferece_ver_no_site_enquanto_a_rota_nao_existe(self):
+    def test_ver_no_site_leva_a_pagina_de_detalhe(self):
         pet = self.criar_pet("Rex")
         resposta = self.client.get(reverse("admin:pets_pet_change", args=[pet.pk]))
-        self.assertNotContains(resposta, "/admin/r/")
+        link = re.search(r'href="(/admin/r/\d+/\d+/)"', resposta.content.decode())
+        self.assertIsNotNone(link)
+        atalho = self.client.get(link.group(1))
+        # O atalho do admin redireciona com o endereço completo, incluindo o domínio.
+        self.assertRedirects(
+            atalho, f"http://testserver{pet.get_absolute_url()}", fetch_redirect_response=False
+        )
 
     def test_cadastro_com_foto_e_vacina(self):
         imagem = io.BytesIO()
@@ -284,6 +334,117 @@ class PetAdminFormularioTests(AdminBaseTestCase):
                 )
                 self.assertEqual(resposta.status_code, 200)
                 self.assertContains(resposta, esperado)
+
+
+class PetAdminRestritoAOngTests(AdminBaseTestCase):
+    """A ONG entra no admin pelo grupo ONG e só enxerga os próprios animais."""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        Usuario = get_user_model()
+        cls.usuario_ong = cls.ong.responsavel
+        cls.usuario_ong.is_staff = True
+        cls.usuario_ong.save()
+        cls.usuario_ong.groups.add(Group.objects.get(name="ONG"))
+        outro = Usuario.objects.create_user("ong2", password="senha", tipo=Usuario.Tipo.ONG)
+        cls.outra_ong = Ong.objects.create(
+            responsavel=outro, nome_fantasia="Lar dos Focinhos", cidade="Formiga"
+        )
+
+    def setUp(self):
+        self.client.force_login(self.usuario_ong)
+        self.meu = self.criar_pet("Rex")
+        self.alheio = self.criar_pet("Bob", ong=self.outra_ong)
+
+    def criar_pet(self, nome, idade=3, especie=None, raca=None, ong=None, **extras):
+        pet = super().criar_pet(nome, idade, especie, raca, **extras)
+        if ong:
+            Pet.objects.filter(pk=pet.pk).update(ong=ong)
+            pet.refresh_from_db()
+        return pet
+
+    def dados(self, **extras):
+        dados = {
+            "nome": "Luna",
+            "especie": self.gato.pk,
+            "raca": self.siames.pk,
+            "sexo": Pet.Sexo.FEMEA,
+            "porte": Pet.Porte.PEQUENO,
+            "idade_aproximada": 2,
+            "descricao": "Calma.",
+            "status": Pet.Status.DISPONIVEL,
+            "vacinas-TOTAL_FORMS": 0,
+            "vacinas-INITIAL_FORMS": 0,
+            "vacinas-MIN_NUM_FORMS": 0,
+            "vacinas-MAX_NUM_FORMS": 1000,
+        }
+        dados.update(extras)
+        return dados
+
+    def test_lista_mostra_so_os_animais_da_propria_ong(self):
+        resposta = self.client.get(reverse("admin:pets_pet_changelist"))
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual({p.nome for p in resposta.context["cl"].queryset}, {"Rex"})
+
+    def test_busca_e_filtros_tambem_ficam_restritos(self):
+        url = reverse("admin:pets_pet_changelist")
+        for filtro in [{"q": "Bob"}, {"especie__id__exact": self.cachorro.pk}]:
+            with self.subTest(filtro=filtro):
+                resposta = self.client.get(url, filtro)
+                self.assertNotIn("Bob", {p.nome for p in resposta.context["cl"].queryset})
+
+    def test_nao_abre_nem_altera_animal_de_outra_ong(self):
+        url = reverse("admin:pets_pet_change", args=[self.alheio.pk])
+        # O admin trata o animal como inexistente e volta para o painel.
+        self.assertEqual(self.client.get(url).status_code, 302)
+        self.client.post(url, self.dados(nome="Invadido", status=Pet.Status.ADOTADO))
+        self.alheio.refresh_from_db()
+        self.assertEqual((self.alheio.nome, self.alheio.status), ("Bob", Pet.Status.DISPONIVEL))
+
+    def test_formulario_nao_tem_campo_ong(self):
+        resposta = self.client.get(reverse("admin:pets_pet_add"))
+        self.assertEqual(resposta.status_code, 200)
+        self.assertNotContains(resposta, 'name="ong"')
+
+    def test_cadastro_grava_a_ong_do_usuario_logado(self):
+        resposta = self.client.post(
+            reverse("admin:pets_pet_add"), self.dados(ong=self.outra_ong.pk)
+        )
+        self.assertEqual(resposta.status_code, 302)
+        self.assertEqual(Pet.objects.get(nome="Luna").ong, self.ong)
+
+    def test_busca_de_raca_continua_funcionando(self):
+        resposta = self.client.get(
+            reverse("admin:autocomplete"),
+            {"app_label": "pets", "model_name": "pet", "field_name": "raca", "term": "Sia"},
+        )
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual([r["text"] for r in resposta.json()["results"]], ["Siamês (Gato)"])
+
+    def test_coluna_e_filtro_de_ong_somem_para_a_ong(self):
+        resposta = self.client.get(reverse("admin:pets_pet_changelist"))
+        cl = resposta.context["cl"]
+        self.assertNotIn("ong", cl.list_display)
+        self.assertNotIn("ong", [f[0] if isinstance(f, tuple) else f for f in cl.list_filter])
+
+    def test_ong_sem_cadastro_nao_pode_adicionar(self):
+        Usuario = get_user_model()
+        sem_ong = Usuario.objects.create_user(
+            "ong3", password="senha", tipo=Usuario.Tipo.ONG, is_staff=True
+        )
+        sem_ong.groups.add(Group.objects.get(name="ONG"))
+        self.client.force_login(sem_ong)
+        self.assertEqual(self.client.get(reverse("admin:pets_pet_add")).status_code, 403)
+        resposta = self.client.get(reverse("admin:pets_pet_changelist"))
+        self.assertEqual(resposta.context["cl"].result_count, 0)
+
+    def test_superusuario_continua_vendo_tudo(self):
+        self.client.force_login(self.admin_user)
+        resposta = self.client.get(reverse("admin:pets_pet_changelist"))
+        self.assertEqual({p.nome for p in resposta.context["cl"].queryset}, {"Rex", "Bob"})
+        self.assertIn("ong", resposta.context["cl"].list_display)
+        self.assertContains(self.client.get(reverse("admin:pets_pet_add")), 'name="ong"')
 
 
 class TemaJazzminTests(AdminBaseTestCase):
