@@ -1,6 +1,14 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 from django.conf import settings
+
+class UsuarioManager(UserManager):
+    def create_superuser(self, *args, **kwargs):
+        # Sem isto o superusuário nasceria com o tipo padrão, adotante, e apareceria
+        # nas telas do adotante em vez de ficar restrito ao ambiente administrativo.
+        kwargs.setdefault("tipo", Usuario.Tipo.ADMIN)
+        return super().create_superuser(*args, **kwargs)
+
 
 class Usuario(AbstractUser):
     class Tipo(models.TextChoices):
@@ -16,6 +24,8 @@ class Usuario(AbstractUser):
     )
     telefone = models.CharField(max_length=20, blank=True)
     cidade = models.CharField(max_length=80, blank=True)
+
+    objects = UsuarioManager()
 
     class Meta:
         verbose_name = "usuário"

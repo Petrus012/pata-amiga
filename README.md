@@ -67,7 +67,16 @@ Usuários de demonstração criados pelo comando `seed`, todos com a senha `pata
 | Adotante | `carla.dias` |
 | Adotante | `diego.rocha` |
 
-O acesso ao ambiente administrativo exige um superusuário, criado com `python manage.py createsuperuser`.
+O superusuário é criado à parte, com `python manage.py createsuperuser`, e nasce com o
+tipo administrador: ele enxerga todo o ambiente administrativo e não aparece nas telas do
+adotante. As ONGs criadas pelo `seed` também entram no ambiente administrativo, mas só
+enxergam os próprios animais e os pedidos que receberam. Os adotantes usam apenas o site.
+
+Uma ONG cadastrada pelo site, em vez do `seed`, não recebe acesso ao ambiente
+administrativo: ela gerencia os animais pela área "Meus animais".
+
+O `seed --limpar` remove os usuários de demonstração e preserva os superusuários, então
+contas criadas pelo cadastro do site são apagadas junto.
 
 ## Principais funcionalidades
 

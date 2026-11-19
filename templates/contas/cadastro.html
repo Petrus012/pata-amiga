@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block titulo %}Cadastre-se{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <h1 class="h3 mb-1">Criar conta</h1>
+    <p class="text-body-secondary">Escolha o tipo de conta e preencha seus dados.</p>
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger" role="alert">
+        {% for erro in form.non_field_errors %}<div>{{ erro }}</div>{% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" novalidate id="form-cadastro">
+      {% csrf_token %}
+
+      <fieldset class="mb-4">
+        <legend class="h6">Tipo de conta</legend>
+        {% for opcao in form.tipo %}
+          <div class="form-check">
+            {{ opcao.tag }}
+            <label class="form-check-label" for="{{ opcao.id_for_label }}">{{ opcao.choice_label }}</label>
+          </div>
+        {% endfor %}
+        {% for erro in form.tipo.errors %}<div class="text-danger small">{{ erro }}</div>{% endfor %}
+      </fieldset>
+
+      <h2 class="h6">Dados de acesso</h2>
+      {% for campo in form %}
+        {% if campo.name in "username,password1,password2" %}
+          {% include "contas/includes/campo.html" with campo=campo %}
+        {% endif %}
+      {% endfor %}
+
+      <h2 class="h6 mt-4">Seus dados</h2>
+      {% for campo in form %}
+        {% if campo.name in "first_name,last_name,email,cidade,telefone" %}
+          {% include "contas/includes/campo.html" with campo=campo %}
+        {% endif %}
+      {% endfor %}
+
+      <div class="mt-4" data-bloco="ONG">
+        <h2 class="h6">Dados da instituição</h2>
+        {% for campo in form %}
+          {% if campo.name in "nome_fantasia,cnpj" %}
+            {% include "contas/includes/campo.html" with campo=campo %}
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <div class="mt-4" data-bloco="ADOTANTE">
+        <h2 class="h6">Sobre sua casa</h2>
+        <p class="text-body-secondary small">
+          A ONG usa estas informações na análise do pedido. Os dois campos são opcionais.
+        </p>
+        {% for campo in form %}
+          {% if campo.name in "tipo_moradia,tem_outros_animais" %}
+            {% include "contas/includes/campo.html" with campo=campo %}
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <button type="submit" class="btn btn-success w-100 mt-4">Criar conta</button>
+    </form>
+
+    <p class="text-center mt-3 mb-0">
+      Já tem conta? <a href="{% url 'login' %}">Entrar</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Mostra só o bloco do tipo escolhido. Sem JavaScript os dois blocos ficam visíveis
+  // e o formulário continua funcionando, porque a obrigatoriedade é validada no servidor.
+  (function () {
+    const form = document.getElementById("form-cadastro");
+    const blocos = form.querySelectorAll("[data-bloco]");
+    const opcoes = form.querySelectorAll('input[name="tipo"]');
+
+    function atualizar() {
+      const escolhido = form.querySelector('input[name="tipo"]:checked');
+      if (!escolhido) return;
+      blocos.forEach(function (bloco) {
+        bloco.hidden = bloco.dataset.bloco !== escolhido.value;
+      });
+    }
+
+    opcoes.forEach(function (opcao) {
+      opcao.addEventListener("change", atualizar);
+    });
+    atualizar();
+  })();
+</script>
+{% endblock %}
